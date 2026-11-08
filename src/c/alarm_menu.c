@@ -18,6 +18,7 @@ enum {
   ROW_DAYS,
   ROW_NAME,
   ROW_SOUND,
+  ROW_VOLUME,
   ROW_VIBRATION,
   ROW_SNOOZE,
   ROW_PROTECT,   // protection against accidental deletion
@@ -37,6 +38,7 @@ static char s_subtitle[48];
 static const char *s_sound_labels[ALARM_SOUND_COUNT];
 static AlarmSound s_sound_order[ALARM_SOUND_COUNT];   // display order: "Off" first, then A-Z
 static const char *s_snooze_labels[SNOOZE_OPTION_COUNT];
+static const char *s_volume_labels[ALARM_VOLUME_COUNT];
 
 // Case-insensitive comparison (sound names are plain ASCII)
 static int prv_name_cmp(const char *a, const char *b) {
@@ -129,6 +131,12 @@ static void prv_sound_done(int index, void *ctx) {
     return;
   }
   a.sound = sound;
+  prv_save(&a);
+}
+
+static void prv_volume_done(int index, void *ctx) {
+  Alarm a = prv_current();
+  a.volume = index;
   prv_save(&a);
 }
 
@@ -231,6 +239,10 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       title = TR("Sound", "Ton");
       subtitle = ui_sound_name(a->sound);
       break;
+    case ROW_VOLUME:
+      title = TR("Volume", "Lautstärke");
+      subtitle = ui_volume_name(a->volume);
+      break;
     case ROW_VIBRATION:
       title = TR("Vibration", "Vibration");
       subtitle = a->vibrate ? ui_vibe_name(a->vibe_pattern) : TR("Off", "Aus");
@@ -298,6 +310,11 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
     case ROW_SOUND:
       option_picker_show(TR("Sound", "Ton"), s_sound_labels, ALARM_SOUND_COUNT,
                          prv_sort_sounds(a.sound), prv_sound_done, NULL);
+      break;
+    case ROW_VOLUME:
+      for (int i = 0; i < ALARM_VOLUME_COUNT; i++) s_volume_labels[i] = ui_volume_name(i);
+      option_picker_show(TR("Volume", "Lautstärke"), s_volume_labels, ALARM_VOLUME_COUNT,
+                         a.volume, prv_volume_done, NULL);
       break;
     case ROW_VIBRATION:
       vibe_menu_show(s_slot);  // on/off and pattern

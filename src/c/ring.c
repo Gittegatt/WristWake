@@ -74,7 +74,7 @@ static void prv_start_alert(void) {
     return;
   }
   AlertParams p = {.vibe_pattern = DEFAULT_VIBE_PATTERN, .vibrate = false,
-                   .sound = ALARM_SOUND_OFF};
+                   .sound = ALARM_SOUND_OFF, .volume = DEFAULT_VOLUME};
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     if (!prv_in_mask(slot)) continue;
     const Alarm *a = store_get(slot);
@@ -83,7 +83,10 @@ static void prv_start_alert(void) {
       p.vibrate = true;
       p.vibe_pattern = a->vibe_pattern;
     }
-    if (a->sound != ALARM_SOUND_OFF && p.sound == ALARM_SOUND_OFF) p.sound = a->sound;
+    if (a->sound != ALARM_SOUND_OFF && p.sound == ALARM_SOUND_OFF) {
+      p.sound = a->sound;
+      p.volume = a->volume;
+    }
   }
   if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;  // never silent
   alert_start(&p);

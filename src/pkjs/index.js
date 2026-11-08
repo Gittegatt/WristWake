@@ -120,7 +120,7 @@ function alarmAttributes(a) {
   return {
     slot: a.s, used: true, name: a.n || '', time: pad(a.h) + ':' + pad(a.m),
     days: dayList(a.d), enabled: !!a.e, sound: a.so, vibrate: !!a.vi, pattern: a.p, snooze: a.z,
-    'protected': !!a.pr
+    'protected': !!a.pr, volume: a.vo || 'medium'
   };
 }
 

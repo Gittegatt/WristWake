@@ -7,6 +7,7 @@ typedef struct {
   VibePattern_t vibe_pattern;  // one of the built-in patterns
   bool vibrate;
   AlarmSound sound;
+  AlarmVolume volume;
 } AlertParams;
 
 void alert_start(const AlertParams *params);

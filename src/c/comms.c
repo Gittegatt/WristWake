@@ -79,7 +79,8 @@ static void prv_build_state(void) {
     APPEND(",\"h\":%d,\"m\":%d,\"d\":%d,\"e\":%d,\"so\":\"%s\",\"vi\":%d,\"p\":\"%s\"",
            a->hour, a->minute, a->days, a->enabled, alarm_sound_key(a->sound), a->vibrate,
            alarm_vibe_key(a->vibe_pattern));
-    APPEND(",\"z\":%d,\"pr\":%d,\"r\":%lu,\"nx\":%ld}", a->snooze, a->protect,
+    APPEND(",\"z\":%d,\"pr\":%d,\"vo\":\"%s\",\"r\":%lu,\"nx\":%ld}", a->snooze, a->protect,
+           alarm_volume_key(a->volume),
            (unsigned long)a->rev, (long)scheduler_next_time(slot));
   }
   APPEND("]}");
@@ -167,11 +168,12 @@ static void prv_apply_name(int slot, const char *name) {
 static void prv_start_test(int slot) {
   const Alarm *a = store_get(slot);
   AlertParams p = {.vibe_pattern = DEFAULT_VIBE_PATTERN, .vibrate = true,
-                   .sound = ALARM_SOUND_OFF};
+                   .sound = ALARM_SOUND_OFF, .volume = DEFAULT_VOLUME};
   if (a && a->used) {
     p.vibe_pattern = a->vibe_pattern;
     p.vibrate = a->vibrate;
     p.sound = a->sound;
+    p.volume = a->volume;
   }
   if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;
   ring_show_test(&p);

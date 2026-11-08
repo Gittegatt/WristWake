@@ -254,13 +254,16 @@ static const SpeakerNote MELODY_PULSE[] = {
 };
 
 static AlarmSound s_sound;
-// Speaker volume in percent (the watch speaker is loud; 80 % and 40 % were too loud on the real watch)
-#define VOLUME_NORMAL 25
-#define VOLUME_RISE_START 10   // the "Rising ..." sounds start quiet ...
-#define VOLUME_RISE_STEP 3     // ... and get louder with every repetition ...
-#define VOLUME_RISE_MAX 35     // ... up to this level
+// Speaker volume in percent per AlarmVolume (quiet, medium, loud). The watch speaker is loud:
+// medium (25 %) was chosen on the real watch, 40 % and 80 % were too loud.
+static const uint8_t VOLUME_FIXED[ALARM_VOLUME_COUNT] = {15, 25, 40};
+// The "Rising ..." sounds start quiet and get louder with every repetition up to a maximum
+static const uint8_t VOLUME_RISE_START[ALARM_VOLUME_COUNT] = {5, 10, 10};
+static const uint8_t VOLUME_RISE_MAX[ALARM_VOLUME_COUNT] = {20, 35, 50};
+#define VOLUME_RISE_STEP 3
 
 static uint8_t s_volume;
+static uint8_t s_volume_max;
 
 // The "Rising ..." sounds get louder with every repetition
 static bool prv_is_rising(AlarmSound sound) {
@@ -273,8 +276,8 @@ static void prv_play_once(void);
 
 static void prv_sound_finished(SpeakerFinishReason reason, void *ctx) {
   if (!s_sound_on || reason != SpeakerFinishReasonDone) return;
-  if (prv_is_rising(s_sound) && s_volume < VOLUME_RISE_MAX) {
-    s_volume = s_volume + VOLUME_RISE_STEP > VOLUME_RISE_MAX ? VOLUME_RISE_MAX : s_volume + VOLUME_RISE_STEP;
+  if (prv_is_rising(s_sound) && s_volume < s_volume_max) {
+    s_volume = s_volume + VOLUME_RISE_STEP > s_volume_max ? s_volume_max : s_volume + VOLUME_RISE_STEP;
   }
   prv_play_once();
 }
@@ -338,7 +341,9 @@ void alert_start(const AlertParams *p) {
       APP_LOG(APP_LOG_LEVEL_INFO, "Speaker muted, vibration only");
     } else {
       s_sound = sound;
-      s_volume = prv_is_rising(sound) ? VOLUME_RISE_START : VOLUME_NORMAL;
+      AlarmVolume level = p->volume < ALARM_VOLUME_COUNT ? p->volume : DEFAULT_VOLUME;
+      s_volume = prv_is_rising(sound) ? VOLUME_RISE_START[level] : VOLUME_FIXED[level];
+      s_volume_max = VOLUME_RISE_MAX[level];
       s_sound_on = true;
       speaker_set_finish_callback(prv_sound_finished, NULL);
       prv_play_once();

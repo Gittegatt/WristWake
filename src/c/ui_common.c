@@ -59,6 +59,14 @@ void ui_format_days(char *buf, size_t size, uint8_t days) {
   }
 }
 
+const char *ui_volume_name(AlarmVolume volume) {
+  switch (volume) {
+    case ALARM_VOLUME_QUIET: return TR("Quiet", "Leise");
+    case ALARM_VOLUME_LOUD:  return TR("Loud", "Laut");
+    default:                 return TR("Medium", "Mittel");
+  }
+}
+
 const char *ui_sound_name(AlarmSound sound) {
   switch (sound) {
     case ALARM_SOUND_REVEILLE: return "Reveille";

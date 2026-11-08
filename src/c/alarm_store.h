@@ -40,6 +40,14 @@ typedef enum {
   ALARM_SOUND_COUNT
 } AlarmSound;
 
+// Sound volume per alarm (percentages in alert.c)
+typedef enum {
+  ALARM_VOLUME_QUIET = 0,
+  ALARM_VOLUME_MEDIUM,
+  ALARM_VOLUME_LOUD,
+  ALARM_VOLUME_COUNT
+} AlarmVolume;
+
 // Built-in vibration patterns (sequences in alert.c)
 typedef enum {
   VIBE_STANDARD = 0,
@@ -62,6 +70,7 @@ extern const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT];
 #define DEFAULT_VIBRATE true
 #define DEFAULT_VIBE_PATTERN VIBE_STANDARD
 #define DEFAULT_SNOOZE 5
+#define DEFAULT_VOLUME ALARM_VOLUME_MEDIUM
 
 // One alarm slot. Changing this layout requires a new STORE_SCHEMA_VERSION in
 // alarm_store.c and a migration of the old data.
@@ -79,6 +88,7 @@ typedef struct {
   char name[ALARM_NAME_BUF];
   uint8_t vibe_pattern;        // VibePattern_t, since schema 4
   uint8_t protect;             // 1 = protected against deletion, since schema 5
+  uint8_t volume;              // AlarmVolume, since schema 6
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).
@@ -123,4 +133,5 @@ bool store_set_watch_name(const char *name);
 // Language-neutral keys for Home Assistant: "off", "reveille", ... / "standard", "pulse", ...
 const char *alarm_sound_key(AlarmSound sound);
 const char *alarm_vibe_key(VibePattern_t pattern);
+const char *alarm_volume_key(AlarmVolume volume);
 bool alarm_snooze_valid(uint8_t minutes);
