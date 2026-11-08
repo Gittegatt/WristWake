@@ -10,11 +10,23 @@ With this alarm app, I wanted to:
 - keep it intuitive and easy to use, close to the native Pebble alarm app
 - sync my alarms with Home Assistant
 - set alarms in bed without grabbing my phone
+- make sure I really get up
 - customize the colors
+
+Features:
+- up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
+- 18 ringtones, including 5 rising ones, each with 4 volume levels
+- vibration patterns, with or without a ringtone
+- snooze off: only holding the bottom button stops the alarm
+- wake-up challenge: repeat a random button sequence (Follow) or guess it (Guess) before the alarm stops
+- 10 color presets or your own colors, left-handed mode
+- English and German, following the watch language
+
+In Home Assistant, your watch appears as its own device. It reports whether an alarm is ringing, snoozed or dismissed, and shows all alarms with their settings. This lets you, for example, turn on the lights or start the coffee machine when your alarm rings.
 
 WristWake connects to your Home Assistant instance with a long-lived access token. The token is used only once to register your watch and is then discarded – it is never stored. After that, all updates are sent via webhook.
 
-I designed the concept, the features and the look of this watchapp myself, down to the menu items and vibration patterns. For the coding, I used Claude Code.
+I designed the concept, the features and the look of this watchapp myself, down to the menu items, ringtones and vibration patterns. For the coding, I used Claude Code.
 
 Coming next: an Android companion alarm app that enables two-way sync between Home Assistant, your Pebble and your Android phone.
 
