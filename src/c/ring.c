@@ -62,12 +62,15 @@ static int prv_first_slot(void) {
   return 0;
 }
 
-// Snoozing is possible only if no ringing alarm has snooze off. Without snoozing, only
-// holding the bottom button stops the alarm; everything else keeps it ringing.
+// Snoozing is possible only if no ringing alarm has snooze off or a challenge. Without
+// snoozing, only holding the bottom button stops the alarm; everything else keeps it ringing.
 static bool prv_can_snooze(void) {
-  if (s_test) return s_test_can_snooze;
+  if (s_test) return s_test_can_snooze && s_test_challenge.mode == CHALLENGE_OFF;
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
-    if (prv_in_mask(slot) && store_get(slot)->used && store_get(slot)->snooze == 0) return false;
+    const Alarm *a = store_get(slot);
+    if (prv_in_mask(slot) && a->used && (a->snooze == 0 || a->challenge != CHALLENGE_OFF)) {
+      return false;
+    }
   }
   return true;
 }
@@ -290,11 +293,6 @@ static void prv_draw(Layer *layer, GContext *ctx) {
                              GTextAlignmentCenter, NULL);
         }
       }
-      graphics_context_set_text_color(ctx, t->dim);
-      graphics_draw_text(ctx, TR("BACK = return", "ZURÜCK = zurück"),
-                         fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                         GRect(8, b.size.h - 34, b.size.w - 16, 24), GTextOverflowModeFill,
-                         GTextAlignmentCenter, NULL);
       return;
     }
     // Follow: only the button that is required now is shown, large in the middle
@@ -317,11 +315,6 @@ static void prv_draw(Layer *layer, GContext *ctx) {
         graphics_context_set_stroke_width(ctx, 1);
       }
     }
-    graphics_context_set_text_color(ctx, t->dim);
-    graphics_draw_text(ctx, TR("BACK = return", "ZURÜCK = zurück"),
-                       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                       GRect(8, b.size.h - 34, b.size.w - 16, 24), GTextOverflowModeFill,
-                       GTextAlignmentCenter, NULL);
     return;
   }
 
@@ -426,24 +419,8 @@ static void prv_challenge_start(const RingChallenge *ch) {
   layer_mark_dirty(s_layer);
 }
 
-static void prv_challenge_leave(void) {
-  if (s_challenge_timer) {
-    app_timer_cancel(s_challenge_timer);
-    s_challenge_timer = NULL;
-  }
-  if (s_pause_timer) {
-    app_timer_cancel(s_pause_timer);
-    s_pause_timer = NULL;
-  }
-  s_state = RING_ACTIVE;
-  s_hold_progress = 0;
-  s_challenge_waiting = false;
-  layer_mark_dirty(s_layer);
-}
-
 static void prv_challenge_idle(void *context) {
-  s_challenge_timer = NULL;
-  if (s_state == RING_CHALLENGE) prv_challenge_leave();
+  s_challenge_timer = NULL;   // the challenge stays until it is solved
 }
 
 // Follow: end of the pause, show the next button
@@ -495,8 +472,8 @@ static void prv_select_click(ClickRecognizerRef r, void *c) {
 }
 
 static void prv_back_click(ClickRecognizerRef r, void *c) {
-  if (s_state == RING_CHALLENGE) prv_challenge_leave();
-  else prv_snooze();
+  if (s_state == RING_CHALLENGE) return;   // only solving the challenge ends it
+  prv_snooze();
 }
 
 static uint32_t prv_now_ms(void) {
@@ -635,6 +612,10 @@ void ring_show_test(const AlertParams *params, bool can_snooze, const RingChalle
   s_mask = 0;
   s_test = true;
   prv_open_window();
+  {
+    RingChallenge ch = prv_needs_challenge();   // with a challenge: show it right away
+    if (ch.mode != CHALLENGE_OFF) prv_challenge_start(&ch);
+  }
   prv_start_timer();
   APP_LOG(APP_LOG_LEVEL_INFO, "Test alarm");
 }
@@ -653,6 +634,10 @@ void ring_show(uint8_t slot_mask) {
   s_mask = slot_mask;
   s_test = false;
   prv_open_window();
+  {
+    RingChallenge ch = prv_needs_challenge();   // with a challenge: show it right away
+    if (ch.mode != CHALLENGE_OFF) prv_challenge_start(&ch);
+  }
   comms_set_status(ALARM_STATUS_RINGING, prv_first_slot());
   prv_start_timer();
   APP_LOG(APP_LOG_LEVEL_INFO, "Alarm ringing: slots 0x%02x", s_mask);

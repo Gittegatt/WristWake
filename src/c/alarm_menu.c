@@ -245,7 +245,9 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       break;
     case ROW_SNOOZE:
       title = TR("Snooze Delay", "Schlummerdauer");
-      subtitle = ui_snooze_name(a->snooze);
+      // With a challenge there is no snoozing (the stored delay applies again without one)
+      subtitle = a->challenge != CHALLENGE_OFF ? TR("Off (Challenge)", "Aus (Weckaufgabe)")
+                                               : ui_snooze_name(a->snooze);
       break;
     case ROW_CHALLENGE:
       title = TR("Challenge", "Weckaufgabe");
@@ -264,7 +266,8 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
   }
   // Protected alarm: show "Delete" greyed out
   bool greyed = (index->row == ROW_DELETE && a->protect) ||
-                (index->row == ROW_VOLUME && a->sound == ALARM_SOUND_OFF);
+                (index->row == ROW_VOLUME && a->sound == ALARM_SOUND_OFF) ||
+                (index->row == ROW_SNOOZE && a->challenge != CHALLENGE_OFF);
 
   int text_w = b.size.w - 16 - (toggle >= 0 ? UI_TOGGLE_W + 10 : 0);
   const Theme *t = theme();
@@ -329,6 +332,10 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
       vibe_menu_show(s_slot);  // on/off and pattern
       break;
     case ROW_SNOOZE: {
+      if (a.challenge != CHALLENGE_OFF) {
+        ui_show_message(TR("No snooze with a challenge.", "Kein Schlummern mit Weckaufgabe."));
+        break;
+      }
       int selected = 0;
       for (int i = 0; i < SNOOZE_OPTION_COUNT; i++) {
         s_snooze_labels[i] = ui_snooze_name(SNOOZE_OPTIONS[i]);
