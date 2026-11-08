@@ -1,7 +1,7 @@
 #include "alarm_store.h"
 
 // Persistent storage keys (theme: 10-12, see theme.c; status: 5, see comms.c)
-#define STORE_SCHEMA_VERSION 7
+#define STORE_SCHEMA_VERSION 8
 #define KEY_SCHEMA      1
 #define KEY_WATCH_ID    2
 #define KEY_WATCH_NAME  3
@@ -115,6 +115,7 @@ static void prv_sanitize(Alarm *alarm) {
   if (alarm->vibe_pattern >= VIBE_PATTERN_COUNT) alarm->vibe_pattern = DEFAULT_VIBE_PATTERN;
   alarm->protect = alarm->protect ? 1 : 0;
   if (alarm->volume >= ALARM_VOLUME_COUNT) alarm->volume = DEFAULT_VOLUME;
+  alarm->challenge = alarm->challenge ? 1 : 0;
 }
 
 static void prv_generate_watch_id(void) {
@@ -167,6 +168,10 @@ static void prv_migrate_old(int32_t schema) {
       uint8_t v = raw[offsetof(Alarm, volume)];
       alarm.volume = v < ARRAY_LENGTH(MAP6) ? MAP6[v] : DEFAULT_VOLUME;
     }
+    if (schema == 7 && read >= (int)offsetof(Alarm, challenge)) {
+      memcpy(&alarm, raw, offsetof(Alarm, challenge));   // schema 7 = current layout without challenge
+    }
+    alarm.challenge = 0;
     persist_write_data(key, &alarm, sizeof(alarm));
   }
   for (int k = 0; k < 3; k++) persist_delete(KEY_OLD_VIBE_MS + k);

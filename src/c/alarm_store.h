@@ -90,6 +90,7 @@ typedef struct {
   uint8_t vibe_pattern;        // VibePattern_t, since schema 4
   uint8_t protect;             // 1 = protected against deletion, since schema 5
   uint8_t volume;              // AlarmVolume, since schema 6 (4 levels since schema 7)
+  uint8_t challenge;           // 1 = solve a button pattern before stopping, since schema 8
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).

@@ -22,6 +22,7 @@ enum {
   ROW_VOLUME,
   ROW_VIBRATION,
   ROW_SNOOZE,
+  ROW_CHALLENGE, // solve a button pattern before the alarm can be stopped
   ROW_PROTECT,   // protection against accidental deletion
   ROW_COUNT
 };
@@ -245,6 +246,10 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       title = TR("Snooze Delay", "Schlummerdauer");
       subtitle = ui_snooze_name(a->snooze);
       break;
+    case ROW_CHALLENGE:
+      title = TR("Challenge", "Weckaufgabe");
+      toggle = a->challenge;
+      break;
     case ROW_PROTECT:
       title = TR("Protection", "Schutz");
       toggle = a->protect;
@@ -326,6 +331,10 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
                          SNOOZE_OPTION_COUNT, selected, prv_snooze_done, NULL);
       break;
     }
+    case ROW_CHALLENGE:
+      a.challenge = !a.challenge;
+      prv_save(&a);
+      break;
     case ROW_PROTECT:
       a.protect = !a.protect;
       prv_save(&a);

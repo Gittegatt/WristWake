@@ -15,7 +15,12 @@
 #define CLOSE_DELAY_MS 3000  // some time for the phone to send the state to Home Assistant
 #define ACTION_BAR_W 30
 
-typedef enum { RING_ACTIVE, RING_DONE } RingState;
+typedef enum { RING_ACTIVE, RING_CHALLENGE, RING_DONE } RingState;
+
+// Challenge: a random sequence of buttons that must be pressed before the alarm stops
+#define CHALLENGE_LEN 4
+#define CHALLENGE_IDLE_MS (30 * 1000)   // no input: back to the ringing screen
+enum { CH_UP = 0, CH_SELECT, CH_DOWN };
 
 static Window *s_window;
 static Layer *s_layer;
@@ -35,6 +40,11 @@ static AppTimer *s_hold_timer;
 static bool s_test;
 static AlertParams s_test_params;
 static bool s_test_can_snooze;
+static bool s_test_challenge;
+
+static uint8_t s_challenge[CHALLENGE_LEN];
+static int s_challenge_pos;          // number of correctly pressed buttons
+static AppTimer *s_challenge_timer;
 
 static bool prv_in_mask(int slot) {
   return s_mask & (1 << (slot - 1));
@@ -55,6 +65,15 @@ static bool prv_can_snooze(void) {
     if (prv_in_mask(slot) && store_get(slot)->used && store_get(slot)->snooze == 0) return false;
   }
   return true;
+}
+
+// The challenge is required if any ringing alarm has it switched on
+static bool prv_needs_challenge(void) {
+  if (s_test) return s_test_challenge;
+  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
+    if (prv_in_mask(slot) && store_get(slot)->used && store_get(slot)->challenge) return true;
+  }
+  return false;
 }
 
 bool ring_is_active(void) {
@@ -111,6 +130,10 @@ static void prv_close(void *context) {
 
 static void prv_finish(const char *text) {
   alert_stop();
+  if (s_challenge_timer) {
+    app_timer_cancel(s_challenge_timer);
+    s_challenge_timer = NULL;
+  }
   if (s_timer) app_timer_cancel(s_timer);
   s_state = RING_DONE;
   snprintf(s_result, sizeof(s_result), "%s", text);
@@ -161,7 +184,7 @@ static void prv_snooze(void) {
 }
 
 static void prv_dismiss(void) {
-  if (s_state != RING_ACTIVE) return;
+  if (s_state != RING_ACTIVE && s_state != RING_CHALLENGE) return;
   if (s_test) {
     prv_finish(TR("Test ended", "Test beendet"));
     return;
@@ -210,6 +233,44 @@ static void prv_draw(Layer *layer, GContext *ctx) {
   const Theme *t = theme();
   graphics_context_set_fill_color(ctx, t->bg);
   graphics_fill_rect(ctx, b, 0, GCornerNone);
+
+  if (s_state == RING_CHALLENGE) {
+    graphics_context_set_text_color(ctx, t->fg);
+    graphics_draw_text(ctx, TR("Press in this order:", "In dieser Reihenfolge drücken:"),
+                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       GRect(8, 18, b.size.w - 16, 60), GTextOverflowModeWordWrap,
+                       GTextAlignmentCenter, NULL);
+    int slot_w = (b.size.w - 16) / CHALLENGE_LEN;
+    for (int i = 0; i < CHALLENGE_LEN; i++) {
+      GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 118);
+      bool done = i < s_challenge_pos;
+      bool current = i == s_challenge_pos;
+      if (current) {   // highlight the next button to press
+        graphics_context_set_fill_color(ctx, t->hl_bg);
+        graphics_fill_rect(ctx, GRect(c.x - 20, c.y - 22, 40, 44), 6, GCornersAll);
+      }
+      GColor color = current ? t->hl_fg : (done ? t->faint : t->fg);
+      graphics_context_set_fill_color(ctx, color);
+      if (s_challenge[i] == CH_SELECT) {
+        graphics_fill_circle(ctx, c, 9);
+      } else {
+        int d = s_challenge[i] == CH_UP ? -1 : 1;   // triangle pointing up or down
+        GPathInfo info = {
+          .num_points = 3,
+          .points = (GPoint[]) {{c.x, c.y + 12 * d}, {c.x - 12, c.y - 10 * d}, {c.x + 12, c.y - 10 * d}},
+        };
+        GPath *path = gpath_create(&info);
+        gpath_draw_filled(ctx, path);
+        gpath_destroy(path);
+      }
+    }
+    graphics_context_set_text_color(ctx, t->dim);
+    graphics_draw_text(ctx, TR("BACK = return", "ZURÜCK = zurück"),
+                       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                       GRect(8, b.size.h - 34, b.size.w - 16, 24), GTextOverflowModeFill,
+                       GTextAlignmentCenter, NULL);
+    return;
+  }
 
   if (s_state == RING_DONE) {
     graphics_context_set_text_color(ctx, t->fg);
@@ -282,7 +343,74 @@ static void prv_draw(Layer *layer, GContext *ctx) {
                      GTextAlignmentCenter, NULL);
 }
 
-static void prv_any_click(ClickRecognizerRef r, void *c) { prv_snooze(); }
+static void prv_challenge_idle(void *context);
+
+static void prv_challenge_new(void) {
+  time_t s;
+  uint16_t ms;
+  time_ms(&s, &ms);
+  srand((unsigned int)(s * 1000 + ms));
+  for (int i = 0; i < CHALLENGE_LEN; i++) s_challenge[i] = rand() % 3;
+  s_challenge_pos = 0;
+}
+
+static void prv_challenge_touch_timer(void) {
+  if (s_challenge_timer) app_timer_cancel(s_challenge_timer);
+  s_challenge_timer = app_timer_register(CHALLENGE_IDLE_MS, prv_challenge_idle, NULL);
+}
+
+static void prv_challenge_start(void) {
+  s_state = RING_CHALLENGE;
+  prv_challenge_new();
+  prv_challenge_touch_timer();
+  layer_mark_dirty(s_layer);
+}
+
+static void prv_challenge_leave(void) {
+  if (s_challenge_timer) {
+    app_timer_cancel(s_challenge_timer);
+    s_challenge_timer = NULL;
+  }
+  s_state = RING_ACTIVE;
+  s_hold_progress = 0;
+  layer_mark_dirty(s_layer);
+}
+
+static void prv_challenge_idle(void *context) {
+  s_challenge_timer = NULL;
+  if (s_state == RING_CHALLENGE) prv_challenge_leave();
+}
+
+// A button press while the challenge is shown: right = next, wrong = new pattern
+static void prv_challenge_input(int button) {
+  if (button == s_challenge[s_challenge_pos]) {
+    s_challenge_pos++;
+    if (s_challenge_pos >= CHALLENGE_LEN) {
+      prv_dismiss();
+      return;
+    }
+  } else {
+    vibes_short_pulse();
+    prv_challenge_new();
+  }
+  prv_challenge_touch_timer();
+  layer_mark_dirty(s_layer);
+}
+
+static void prv_up_click(ClickRecognizerRef r, void *c) {
+  if (s_state == RING_CHALLENGE) prv_challenge_input(CH_UP);
+  else prv_snooze();
+}
+
+static void prv_select_click(ClickRecognizerRef r, void *c) {
+  if (s_state == RING_CHALLENGE) prv_challenge_input(CH_SELECT);
+  else prv_snooze();
+}
+
+static void prv_back_click(ClickRecognizerRef r, void *c) {
+  if (s_state == RING_CHALLENGE) prv_challenge_leave();
+  else prv_snooze();
+}
 
 static uint32_t prv_now_ms(void) {
   time_t s;
@@ -301,7 +429,11 @@ static void prv_hold_frame(void *context) {
     if (s_hold_progress >= 1000) {
       s_holding = false;
       layer_mark_dirty(s_layer);
-      prv_dismiss();
+      if (prv_needs_challenge()) {
+        prv_challenge_start();
+      } else {
+        prv_dismiss();
+      }
       return;
     }
   } else {
@@ -317,6 +449,10 @@ static void prv_hold_frame(void *context) {
 }
 
 static void prv_down_pressed(ClickRecognizerRef r, void *c) {
+  if (s_state == RING_CHALLENGE) {
+    prv_challenge_input(CH_DOWN);
+    return;
+  }
   if (s_state != RING_ACTIVE) return;
   s_holding = true;
   s_hold_start_ms = prv_now_ms() - (uint32_t)s_hold_progress * HOLD_MS / 1000;
@@ -336,9 +472,9 @@ static void prv_down_released(ClickRecognizerRef r, void *c) {
 }
 
 static void prv_clicks(void *context) {
-  window_single_click_subscribe(BUTTON_ID_UP, prv_any_click);
-  window_single_click_subscribe(BUTTON_ID_SELECT, prv_any_click);
-  window_single_click_subscribe(BUTTON_ID_BACK, prv_any_click);
+  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
+  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
+  window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click);
   // bottom button: short = snooze, hold 1.5 s = stop (bar fills up)
   window_raw_click_subscribe(BUTTON_ID_DOWN, prv_down_pressed, prv_down_released, NULL);
 }
@@ -367,6 +503,10 @@ static void prv_unload(Window *window) {
     app_timer_cancel(s_hold_timer);
     s_hold_timer = NULL;
   }
+  if (s_challenge_timer) {
+    app_timer_cancel(s_challenge_timer);
+    s_challenge_timer = NULL;
+  }
   s_holding = false;
   s_hold_progress = 0;
   light_enable(false);
@@ -394,11 +534,12 @@ static void prv_open_window(void) {
   prv_start_alert();
 }
 
-void ring_show_test(const AlertParams *params, bool can_snooze) {
-  if (s_window && !s_test && s_state == RING_ACTIVE) return;  // a real alarm has priority
+void ring_show_test(const AlertParams *params, bool can_snooze, bool challenge) {
+  if (s_window && !s_test && s_state != RING_DONE) return;  // a real alarm has priority
   if (s_window) window_stack_remove(s_window, false);
   s_test_params = *params;
   s_test_can_snooze = can_snooze;
+  s_test_challenge = challenge;
   s_mask = 0;
   s_test = true;
   prv_open_window();
@@ -409,7 +550,7 @@ void ring_show_test(const AlertParams *params, bool can_snooze) {
 void ring_show(uint8_t slot_mask) {
   slot_mask &= SCHED_SLOT_MASK;
   if (!slot_mask) return;
-  if (s_window && s_state == RING_ACTIVE && !s_test) {
+  if (s_window && s_state != RING_DONE && !s_test) {
     s_mask |= slot_mask;  // another alarm while ringing
     prv_build_names();
     layer_mark_dirty(s_layer);
