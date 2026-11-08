@@ -258,7 +258,7 @@ static AlarmSound s_sound;
 #define VOLUME_NORMAL 25
 #define VOLUME_RISE_START 10   // the "Rising ..." sounds start quiet ...
 #define VOLUME_RISE_STEP 3     // ... and get louder with every repetition ...
-#define VOLUME_RISE_MAX 40     // ... up to this level
+#define VOLUME_RISE_MAX 35     // ... up to this level
 
 static uint8_t s_volume;
 
