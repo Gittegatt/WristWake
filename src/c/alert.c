@@ -180,6 +180,16 @@ static const SpeakerNote MELODY_YUROP[] = {
   REST(4 * YU_8),
 };
 
+// Field Agent: own electronic pattern - two flickering double tones, a short pause,
+// then a quick rising confirmation tone.
+#define FA_FLICK NOTE(88, 30, SQR), NOTE(93, 30, SQR), NOTE(88, 30, SQR), NOTE(93, 30, SQR), \
+                 NOTE(88, 30, SQR), NOTE(93, 30, SQR), NOTE(88, 30, SQR), NOTE(93, 30, SQR)
+static const SpeakerNote MELODY_FIELD_AGENT[] = {
+  FA_FLICK, REST(90), FA_FLICK, REST(260),
+  NOTE(81, 70, SQR), REST(20), NOTE(88, 70, SQR), REST(20), NOTE(93, 160, SQR),
+  REST(900),
+};
+
 static AlarmSound s_sound;
 static uint8_t s_volume;
 static bool s_sound_on;
@@ -208,6 +218,8 @@ static void prv_play_once(void) {
       notes = MELODY_WESTMINSTER; count = ARRAY_LENGTH(MELODY_WESTMINSTER); break;
     case ALARM_SOUND_YUROP:
       notes = MELODY_YUROP; count = ARRAY_LENGTH(MELODY_YUROP); break;
+    case ALARM_SOUND_FIELD_AGENT:
+      notes = MELODY_FIELD_AGENT; count = ARRAY_LENGTH(MELODY_FIELD_AGENT); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {

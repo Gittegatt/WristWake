@@ -68,6 +68,7 @@ const char *ui_sound_name(AlarmSound sound) {
     case ALARM_SOUND_KOROBEINIKI: return "Korobeiniki";
     case ALARM_SOUND_WESTMINSTER: return "Westminster";
     case ALARM_SOUND_YUROP:       return "Yurop";
+    case ALARM_SOUND_FIELD_AGENT: return "Field Agent";
     default:                   return TR("Off", "Aus");
   }
 }
