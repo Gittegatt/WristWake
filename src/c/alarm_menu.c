@@ -4,6 +4,7 @@
 #include "time_picker.h"
 #include "pickers.h"
 #include "vibe_menu.h"
+#include "volume_menu.h"
 #include "i18n.h"
 
 // Day presets; "Custom" opens the checkbox list
@@ -38,7 +39,6 @@ static char s_subtitle[48];
 static const char *s_sound_labels[ALARM_SOUND_COUNT];
 static AlarmSound s_sound_order[ALARM_SOUND_COUNT];   // display order: "Off" first, then A-Z
 static const char *s_snooze_labels[SNOOZE_OPTION_COUNT];
-static const char *s_volume_labels[ALARM_VOLUME_COUNT];
 
 // Case-insensitive comparison (sound names are plain ASCII)
 static int prv_name_cmp(const char *a, const char *b) {
@@ -131,12 +131,6 @@ static void prv_sound_done(int index, void *ctx) {
     return;
   }
   a.sound = sound;
-  prv_save(&a);
-}
-
-static void prv_volume_done(int index, void *ctx) {
-  Alarm a = prv_current();
-  a.volume = index;
   prv_save(&a);
 }
 
@@ -241,7 +235,7 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       break;
     case ROW_VOLUME:
       title = TR("Volume", "Lautstärke");
-      subtitle = ui_volume_name(a->volume);
+      subtitle = a->sound == ALARM_SOUND_OFF ? TR("Off", "Aus") : ui_volume_name(a->volume);
       break;
     case ROW_VIBRATION:
       title = TR("Vibration", "Vibration");
@@ -257,7 +251,8 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       break;
   }
   // Protected alarm: show "Delete" greyed out
-  bool greyed = (index->row == ROW_DELETE && a->protect);
+  bool greyed = (index->row == ROW_DELETE && a->protect) ||
+                (index->row == ROW_VOLUME && a->sound == ALARM_SOUND_OFF);
 
   int text_w = b.size.w - 16 - (toggle >= 0 ? UI_TOGGLE_W + 10 : 0);
   const Theme *t = theme();
@@ -312,9 +307,11 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
                          prv_sort_sounds(a.sound), prv_sound_done, NULL);
       break;
     case ROW_VOLUME:
-      for (int i = 0; i < ALARM_VOLUME_COUNT; i++) s_volume_labels[i] = ui_volume_name(i);
-      option_picker_show(TR("Volume", "Lautstärke"), s_volume_labels, ALARM_VOLUME_COUNT,
-                         a.volume, prv_volume_done, NULL);
+      if (a.sound == ALARM_SOUND_OFF) {
+        ui_show_message(TR("Choose a sound first.", "Zuerst einen Ton wählen."));
+      } else {
+        volume_menu_show(s_slot);  // levels with a preview of the sound
+      }
       break;
     case ROW_VIBRATION:
       vibe_menu_show(s_slot);  // on/off and pattern

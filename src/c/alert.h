@@ -8,6 +8,7 @@ typedef struct {
   bool vibrate;
   AlarmSound sound;
   AlarmVolume volume;
+  bool preview;                // volume menu preview: "Rising ..." sounds play at their maximum
 } AlertParams;
 
 void alert_start(const AlertParams *params);

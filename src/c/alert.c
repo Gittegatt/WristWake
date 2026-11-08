@@ -342,7 +342,8 @@ void alert_start(const AlertParams *p) {
     } else {
       s_sound = sound;
       AlarmVolume level = p->volume < ALARM_VOLUME_COUNT ? p->volume : DEFAULT_VOLUME;
-      s_volume = prv_is_rising(sound) ? VOLUME_RISE_START[level] : VOLUME_FIXED[level];
+      s_volume = !prv_is_rising(sound) ? VOLUME_FIXED[level]
+               : (p->preview ? VOLUME_RISE_MAX[level] : VOLUME_RISE_START[level]);
       s_volume_max = VOLUME_RISE_MAX[level];
       s_sound_on = true;
       speaker_set_finish_callback(prv_sound_finished, NULL);
