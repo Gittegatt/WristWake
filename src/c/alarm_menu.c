@@ -35,7 +35,37 @@ static char s_header[16 + ALARM_NAME_BUF];
 static char s_subtitle[48];
 
 static const char *s_sound_labels[ALARM_SOUND_COUNT];
+static AlarmSound s_sound_order[ALARM_SOUND_COUNT];   // display order: "Off" first, then A-Z
 static const char *s_snooze_labels[SNOOZE_OPTION_COUNT];
+
+// Case-insensitive comparison (sound names are plain ASCII)
+static int prv_name_cmp(const char *a, const char *b) {
+  for (;; a++, b++) {
+    char ca = (*a >= 'A' && *a <= 'Z') ? *a + 32 : *a;
+    char cb = (*b >= 'A' && *b <= 'Z') ? *b + 32 : *b;
+    if (ca != cb || !ca) return ca - cb;
+  }
+}
+
+// Fills s_sound_order / s_sound_labels and returns the row of the given sound
+static int prv_sort_sounds(AlarmSound current) {
+  int n = 0;
+  s_sound_order[n++] = ALARM_SOUND_OFF;
+  for (int s = 1; s < ALARM_SOUND_COUNT; s++) {
+    int i = n++;
+    while (i > 1 && prv_name_cmp(ui_sound_name(s), ui_sound_name(s_sound_order[i - 1])) < 0) {
+      s_sound_order[i] = s_sound_order[i - 1];
+      i--;
+    }
+    s_sound_order[i] = s;
+  }
+  int row = 0;
+  for (int i = 0; i < ALARM_SOUND_COUNT; i++) {
+    s_sound_labels[i] = ui_sound_name(s_sound_order[i]);
+    if (s_sound_order[i] == current) row = i;
+  }
+  return row;
+}
 
 static Alarm prv_current(void) {
   return *store_get(s_slot);
@@ -93,11 +123,12 @@ static void prv_show_days_presets(void) {
 
 static void prv_sound_done(int index, void *ctx) {
   Alarm a = prv_current();
-  if (index == ALARM_SOUND_OFF && !a.vibrate) {
+  AlarmSound sound = s_sound_order[index];
+  if (sound == ALARM_SOUND_OFF && !a.vibrate) {
     prv_silent_hint();
     return;
   }
-  a.sound = index;
+  a.sound = sound;
   prv_save(&a);
 }
 
@@ -265,9 +296,8 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
       prv_start_dictation();
       break;
     case ROW_SOUND:
-      for (int i = 0; i < ALARM_SOUND_COUNT; i++) s_sound_labels[i] = ui_sound_name(i);
-      option_picker_show(TR("Sound", "Ton"), s_sound_labels, ALARM_SOUND_COUNT, a.sound,
-                         prv_sound_done, NULL);
+      option_picker_show(TR("Sound", "Ton"), s_sound_labels, ALARM_SOUND_COUNT,
+                         prv_sort_sounds(a.sound), prv_sound_done, NULL);
       break;
     case ROW_VIBRATION:
       vibe_menu_show(s_slot);  // on/off and pattern
