@@ -26,15 +26,17 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK = '/tmp/ww_preview'
 SHOTS = '/tmp/ww_preview_shots'
+RING = False   # set by capture_ring()
 QUIET = re.compile(r'SyntaxWarning|:param|Represents|^N/A%|Saved screenshot|PHONESIM')
 
 # Role order = order in the settings page (roleColors in index.html)
 ROLES = ['bg', 'fg', 'dim', 'faint', 'hl_bg', 'hl_fg', 'hl_dim', 'hl_faint',
          'header_bg', 'header_fg', 'header_dim', 'bar_bg', 'bar_fg']
 
+# Sample alarms: (name, hour, minute, days, enabled) - slot 1 and slot 2
 DEMO = {
-    'de': ('Arbeit', 'Wochenende'),
-    'en': ('Work', 'Weekend'),
+    'de': (('Arbeit', 7, 0, 31, 1), ('WOCHENENDE', 9, 30, 96, 0)),
+    'en': (('Work', 7, 0, 31, 1), ('WEEKEND', 9, 30, 96, 0)),
 }
 
 
@@ -86,15 +88,29 @@ def prepare(lang):
           'void scheduler_update(void) {\n  return;\n')
     patch(os.path.join(c, 'comms.c'), 'void comms_send_state(void) {\n',
           'void comms_send_state(void) {\n  return;\n')
-    first, second = DEMO[lang]
+    # never write anything to the emulator's storage
+    patch(os.path.join(c, 'comms.c'), 'void comms_set_status(AlarmStatus status, int slot) {\n',
+          'void comms_set_status(AlarmStatus status, int slot) {\n  return;\n')
+    patch(os.path.join(c, 'alarm_store.c'), 'bool store_save(int slot, const Alarm *alarm) {\n',
+          'bool store_save(int slot, const Alarm *alarm) {\n  return true;\n')
+    patch(os.path.join(c, 'alarm_store.c'), 'bool store_delete(int slot) {\n',
+          'bool store_delete(int slot) {\n  return true;\n')
+    patch(os.path.join(c, 'alarm_store.c'), 'void store_set_snooze_until(int slot, time_t when) {\n',
+          'void store_set_snooze_until(int slot, time_t when) {\n  return;\n')
+    if RING:
+        # ringing screen of slot 1 right after start, clock fixed at 7:00, no auto snooze
+        patch(os.path.join(c, 'wristwake.c'), '  if (ring_mask) {', '  ring_mask = 0x01;\n  if (ring_mask) {')
+        patch(os.path.join(c, 'ring.c'), '  struct tm *lt = localtime(&now);\n',
+              '  struct tm *lt = localtime(&now);\n  lt->tm_hour = 7;\n  lt->tm_min = 0;\n')
+        patch(os.path.join(c, 'ring.c'), '#define AUTO_SNOOZE_MS (60 * 1000)', '#define AUTO_SNOOZE_MS (600 * 1000)')
+    code = '  // Preview: two sample alarms, in memory only\n'
+    code += '  for (int i = 0; i < ALARM_SLOTS; i++) prv_empty_slot(&s_alarms[i], 0);\n'
+    for i, (name, hour, minute, days, enabled) in enumerate(DEMO[lang]):
+        code += ('  s_alarms[%d].used = 1; s_alarms[%d].enabled = %d; s_alarms[%d].hour = %d;\n'
+                 '  s_alarms[%d].minute = %d; s_alarms[%d].days = %d; strcpy(s_alarms[%d].name, "%s");\n'
+                 % (i, i, enabled, i, hour, i, minute, i, days, i, name))
     patch(os.path.join(c, 'alarm_store.c'), '  APP_LOG(APP_LOG_LEVEL_INFO, "Storage loaded:',
-          '  // Preview: two sample alarms, in memory only\n'
-          '  for (int i = 0; i < ALARM_SLOTS; i++) prv_empty_slot(&s_alarms[i], 0);\n'
-          '  s_alarms[0].used = 1; s_alarms[0].enabled = 1; s_alarms[0].hour = 6;\n'
-          '  s_alarms[0].minute = 30; s_alarms[0].days = 31; strcpy(s_alarms[0].name, "%s");\n'
-          '  s_alarms[1].used = 1; s_alarms[1].enabled = 0; s_alarms[1].hour = 9;\n'
-          '  s_alarms[1].minute = 0; s_alarms[1].days = 96; strcpy(s_alarms[1].name, "%s");\n'
-          '  APP_LOG(APP_LOG_LEVEL_INFO, "Storage loaded:' % (first, second))
+          code + '  APP_LOG(APP_LOG_LEVEL_INFO, "Storage loaded:')
 
 
 def emu(*args):
@@ -147,6 +163,25 @@ SUNLIGHT = load_sunlight()
 def to_levels(rgb):
     """Closest Pebble color (2 bits per channel) to a corrected screen color."""
     return min(SUNLIGHT, key=lambda e: sum((a - b) ** 2 for a, b in zip(e[0], rgb)))[1]
+
+
+def capture_ring(lang):
+    """Screenshot of the ringing screen (slot 1, clock fixed at 7:00)."""
+    global RING
+    RING = True
+    try:
+        prepare(lang)
+    finally:
+        RING = False
+    code, out = run(['pebble', 'build'], WORK, timeout=300)
+    if code != 0:
+        sys.exit('Build failed:\n' + out)
+    os.makedirs(SHOTS, exist_ok=True)
+    code, out = run(['pebble', 'install', '--emulator', 'emery'], WORK, timeout=180)
+    if code != 0:
+        sys.exit('Install failed:\n' + out)
+    time.sleep(3)
+    return shoot('ring_' + lang)
 
 
 def fit(rgb, cache):
