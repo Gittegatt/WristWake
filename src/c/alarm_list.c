@@ -5,8 +5,8 @@
 #include "ui_common.h"
 #include "i18n.h"
 
-#define HEADER_H 24
-#define ALARM_ROW_H 68   // 3 alarms per page: (228 - 24) / 3
+#define HEADER_H 28      // same as the alarm menu
+#define ALARM_ROW_H 66   // 3 alarms per page: (228 - 28) / 3
 #define NEW_ROW_H 46
 #define DAYS_W 74        // width of the weekday letters
 
@@ -50,10 +50,11 @@ static void prv_select_row(int row) {
 static void prv_header_draw(Layer *layer, GContext *ctx) {
   GRect b = layer_get_bounds(layer);
   // "WristWake" centered (the version number is shown at the bottom of the settings page)
-  ui_draw_header_bar(ctx, b, "", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), 0);
+  // Same height and font as the headers of the alarm menu and pickers
+  ui_draw_header_bar(ctx, b, "", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), -3);
   graphics_context_set_text_color(ctx, ui_header_fg());
-  graphics_draw_text(ctx, "WristWake", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                     GRect(0, 0, b.size.w, b.size.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  graphics_draw_text(ctx, "WristWake", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                     GRect(0, -3, b.size.w, b.size.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 
 // ---------------------------------------------------------------------------
