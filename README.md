@@ -4,7 +4,7 @@ Alarm clock watchapp for the Pebble Time 2 (SDK platform `emery`) with up to 8 a
 
 ## About (Pebble App Store description)
 
-The native Android alarm app can sync its alarms with Home Assistant through the Home Assistant Companion App. With a Pebble, however, there was no way to pass my alarms on to Home Assistant to trigger automations or other actions. WristWake bridges this gap.
+I love waking up to the vibration of my Pebble on my wrist. The native Android alarm app can sync its alarms with Home Assistant through the Home Assistant Companion App. With a Pebble, however, there was no way to pass my alarms on to Home Assistant to trigger automations or other actions. WristWake bridges this gap.
 
 With this alarm app, I wanted to:
 - keep it intuitive and easy to use, close to the native Pebble alarm app
