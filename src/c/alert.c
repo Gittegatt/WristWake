@@ -254,12 +254,12 @@ static const SpeakerNote MELODY_PULSE[] = {
 };
 
 static AlarmSound s_sound;
-// Speaker volume in percent per AlarmVolume (quiet, medium, loud). The watch speaker is loud:
+// Speaker volume in percent per AlarmVolume (quiet, low, medium, high). The watch speaker is loud:
 // medium (25 %) was chosen on the real watch, 40 % and 80 % were too loud.
-static const uint8_t VOLUME_FIXED[ALARM_VOLUME_COUNT] = {15, 25, 40};
+static const uint8_t VOLUME_FIXED[ALARM_VOLUME_COUNT] = {8, 15, 25, 40};
 // The "Rising ..." sounds start quiet and get louder with every repetition up to a maximum
-static const uint8_t VOLUME_RISE_START[ALARM_VOLUME_COUNT] = {5, 10, 10};
-static const uint8_t VOLUME_RISE_MAX[ALARM_VOLUME_COUNT] = {20, 35, 50};
+static const uint8_t VOLUME_RISE_START[ALARM_VOLUME_COUNT] = {3, 5, 10, 10};
+static const uint8_t VOLUME_RISE_MAX[ALARM_VOLUME_COUNT] = {12, 20, 35, 50};
 #define VOLUME_RISE_STEP 3
 
 static uint8_t s_volume;

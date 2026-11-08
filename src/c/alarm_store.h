@@ -43,8 +43,9 @@ typedef enum {
 // Sound volume per alarm (percentages in alert.c)
 typedef enum {
   ALARM_VOLUME_QUIET = 0,
+  ALARM_VOLUME_LOW,
   ALARM_VOLUME_MEDIUM,
-  ALARM_VOLUME_LOUD,
+  ALARM_VOLUME_HIGH,
   ALARM_VOLUME_COUNT
 } AlarmVolume;
 
@@ -88,7 +89,7 @@ typedef struct {
   char name[ALARM_NAME_BUF];
   uint8_t vibe_pattern;        // VibePattern_t, since schema 4
   uint8_t protect;             // 1 = protected against deletion, since schema 5
-  uint8_t volume;              // AlarmVolume, since schema 6
+  uint8_t volume;              // AlarmVolume, since schema 6 (4 levels since schema 7)
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).

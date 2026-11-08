@@ -1,7 +1,7 @@
 #include "alarm_store.h"
 
 // Persistent storage keys (theme: 10-12, see theme.c; status: 5, see comms.c)
-#define STORE_SCHEMA_VERSION 6
+#define STORE_SCHEMA_VERSION 7
 #define KEY_SCHEMA      1
 #define KEY_WATCH_ID    2
 #define KEY_WATCH_NAME  3
@@ -19,7 +19,7 @@ static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
   "rising_daybreak", "rising_breeze", "rising_bloom"
 };
 
-static const char *const VOLUME_KEYS[ALARM_VOLUME_COUNT] = {"quiet", "medium", "loud"};
+static const char *const VOLUME_KEYS[ALARM_VOLUME_COUNT] = {"quiet", "low", "medium", "high"};
 
 static const char *const VIBE_KEYS[VIBE_PATTERN_COUNT] = {
   "standard", "pulse", "double", "heartbeat", "rising", "sos", "long", "gentle", "aurora"
@@ -142,7 +142,8 @@ static void prv_wipe_slots(void) {
 // Older formats -> current format: keep the basic data (time, days, name, sound, snooze ...).
 // Schema 4 also has the vibration pattern at the same position as today; for schema 1-3
 // (free-form patterns/strengths) it becomes "Standard". Protection is off.
-// Schema 5 is the current layout without the volume. All alarms get the default volume.
+// Schema 5 is the current layout without the volume: alarms get the default volume.
+// Schema 6 had 3 volume levels (quiet 15 %, medium, loud); they become low, medium, high.
 static void prv_migrate_old(int32_t schema) {
   for (int i = 0; i < ALARM_SLOTS; i++) {
     uint32_t key = KEY_SLOT_BASE + i + 1;
@@ -157,10 +158,15 @@ static void prv_migrate_old(int32_t schema) {
       alarm.vibe_pattern = raw[offsetof(Alarm, vibe_pattern)];
     }
     alarm.protect = 0;
-    if (schema == 5 && read >= (int)offsetof(Alarm, volume)) {
+    alarm.volume = DEFAULT_VOLUME;
+    if (schema >= 5 && read >= (int)offsetof(Alarm, volume)) {
       memcpy(&alarm, raw, offsetof(Alarm, volume));
     }
-    alarm.volume = DEFAULT_VOLUME;
+    if (schema == 6 && read > (int)offsetof(Alarm, volume)) {
+      static const uint8_t MAP6[] = {ALARM_VOLUME_LOW, ALARM_VOLUME_MEDIUM, ALARM_VOLUME_HIGH};
+      uint8_t v = raw[offsetof(Alarm, volume)];
+      alarm.volume = v < ARRAY_LENGTH(MAP6) ? MAP6[v] : DEFAULT_VOLUME;
+    }
     persist_write_data(key, &alarm, sizeof(alarm));
   }
   for (int k = 0; k < 3; k++) persist_delete(KEY_OLD_VIBE_MS + k);

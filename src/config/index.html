@@ -222,7 +222,7 @@
       save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
       off: 'aus', days_once: 'einmalig',
       test: 'Testen', test_sent: 'Testalarm läuft auf der Uhr.',
-      vol_test: 'Lautstärke testen:', vol_0: 'Leise', vol_1: 'Mittel', vol_2: 'Laut',
+      vol_test: 'Lautstärke testen:', vol_0: 'Sehr leise', vol_1: 'Leise', vol_2: 'Mittel', vol_3: 'Laut',
       mode_direct: 'Verbindung zur App: direkt',
       mode_fallback: 'Verbindung zur App: Ersatzweg (die Seite schließt sich beim Speichern)'
     },
@@ -252,7 +252,7 @@
       save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
       off: 'off', days_once: 'once',
       test: 'Test', test_sent: 'Test alarm is ringing on the watch.',
-      vol_test: 'Test volume:', vol_0: 'Quiet', vol_1: 'Medium', vol_2: 'Loud',
+      vol_test: 'Test volume:', vol_0: 'Quiet', vol_1: 'Low', vol_2: 'Medium', vol_3: 'High',
       mode_direct: 'Connection to the app: direct',
       mode_fallback: 'Connection to the app: fallback (the page closes when saving)'
     }
@@ -336,7 +336,7 @@
         // TEMPORARY: test buttons for all three volumes (remove after choosing the levels)
         '<div class="row"><span class="description" style="padding:0">' + t('vol_test') + '</span>' +
         '<span class="buttons" style="padding:0;gap:0.4rem">' +
-        [0, 1, 2].map(function (v) {
+        [0, 1, 2, 3].map(function (v) {
           return '<button class="small" data-slot="' + a.s + '" data-volume="' + v + '" data-field="voltest">' +
                  t('vol_' + v) + '</button>';
         }).join('') + '</span></div>' +
