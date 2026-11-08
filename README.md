@@ -65,7 +65,7 @@ src/c/              watchapp C code
 src/pkjs/           JavaScript part (runs in the Pebble app on the phone)
 src/config/         settings page (bundled into the app)
 resources/images/   app icon for the watch launcher
-store/              icons for the Pebble App Store
+store/              icons and screenshots for the Pebble App Store
 tools/              helper scripts (emulator, settings page, preview images)
 package.json        project data (UUID, platforms, message keys)
 wscript             build rules
