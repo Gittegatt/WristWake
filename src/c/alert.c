@@ -190,6 +190,49 @@ static const SpeakerNote MELODY_FIELD_AGENT[] = {
   REST(900),
 };
 
+// Speakeasy: own short swing tune with a bar feeling (F major, swung eighths at quarter = 160).
+#define SW_L 250   // long half of a swung eighth pair
+#define SW_S 125   // short half
+#define SW(midi, ms) NOTE(midi, (ms) - 25, TRI), REST(25)
+static const SpeakerNote MELODY_SPEAKEASY[] = {
+  SW(72, SW_L), SW(76, SW_S), SW(79, SW_L), SW(81, SW_S),            // C E G A
+  SW(82, 375), SW(81, SW_L), SW(79, SW_S),                           // Bb - A G
+  SW(77, SW_L), SW(81, SW_S), SW(84, SW_L), SW(86, SW_S),            // F A C D
+  SW(84, 750),                                                       // C
+  SW(82, SW_L), SW(81, SW_S), SW(79, SW_L), SW(76, SW_S),            // Bb A G E
+  SW(77, 375), SW(72, 375),                                          // F C
+  SW(74, SW_L), SW(77, SW_S), SW(81, SW_L), SW(79, SW_S),            // D F A G
+  SW(77, 750), REST(750),                                            // F
+};
+
+// Maple Leaf Rag (Scott Joplin, 1899, public domain): the famous opening four bars,
+// top voice of the first edition, A-flat major, 2/4; lengths in sixteenths.
+#define ML_16 160
+#define ML(midi, n16) NOTE(midi, (n16) * ML_16 - 25, TRI), REST(25)
+static const SpeakerNote MELODY_MAPLE_LEAF[] = {
+  REST(ML_16), ML(68, 1), ML(75, 1), ML(68, 1), ML(72, 1), ML(75, 2), ML(67, 1),   // bar 1
+  ML(75, 1), ML(67, 1), ML(70, 1), ML(75, 3), REST(2 * ML_16),                     // bar 2
+  REST(ML_16), ML(68, 1), ML(75, 1), ML(68, 1), ML(72, 1), ML(75, 2), ML(67, 1),   // bar 3
+  ML(63, 1), ML(67, 1), ML(70, 1), ML(75, 2), REST(ML_16), ML(75, 1),              // bar 4
+  REST(4 * ML_16),
+};
+
+// Rondo alla Turca (Mozart, piano sonata K. 331, public domain): opening theme, A minor,
+// 2/4 at quarter = 120; lengths in sixteenths.
+#define RO_16 125
+#define RO(midi, n16) NOTE(midi, (n16) * RO_16 - 20, TRI), REST(20)
+static const SpeakerNote MELODY_RONDO[] = {
+  RO(71, 1), RO(69, 1), RO(68, 1), RO(69, 1),                                       // pickup
+  RO(72, 2), REST(2 * RO_16), RO(74, 1), RO(72, 1), RO(71, 1), RO(72, 1),
+  RO(76, 2), REST(2 * RO_16), RO(77, 1), RO(76, 1), RO(75, 1), RO(76, 1),
+  RO(83, 1), RO(81, 1), RO(80, 1), RO(81, 1), RO(83, 1), RO(81, 1), RO(80, 1), RO(81, 1),
+  RO(84, 4), RO(81, 2), RO(84, 2),
+  RO(83, 2), RO(81, 2), RO(79, 2), RO(81, 2),
+  RO(83, 2), RO(81, 2), RO(79, 2), RO(81, 2),
+  RO(83, 2), RO(81, 2), RO(79, 2), RO(78, 2),
+  RO(76, 4), REST(4 * RO_16),
+};
+
 static AlarmSound s_sound;
 static uint8_t s_volume;
 static bool s_sound_on;
@@ -220,6 +263,12 @@ static void prv_play_once(void) {
       notes = MELODY_YUROP; count = ARRAY_LENGTH(MELODY_YUROP); break;
     case ALARM_SOUND_FIELD_AGENT:
       notes = MELODY_FIELD_AGENT; count = ARRAY_LENGTH(MELODY_FIELD_AGENT); break;
+    case ALARM_SOUND_SPEAKEASY:
+      notes = MELODY_SPEAKEASY; count = ARRAY_LENGTH(MELODY_SPEAKEASY); break;
+    case ALARM_SOUND_MAPLE_LEAF:
+      notes = MELODY_MAPLE_LEAF; count = ARRAY_LENGTH(MELODY_MAPLE_LEAF); break;
+    case ALARM_SOUND_RONDO:
+      notes = MELODY_RONDO; count = ARRAY_LENGTH(MELODY_RONDO); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {
