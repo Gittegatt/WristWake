@@ -27,6 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK = '/tmp/ww_preview'
 SHOTS = '/tmp/ww_preview_shots'
 RING = False   # set by capture_ring()
+LEFT = False   # set by capture_ring(left=True)
 QUIET = re.compile(r'SyntaxWarning|:param|Represents|^N/A%|Saved screenshot|PHONESIM')
 
 # Role order = order in the settings page (roleColors in index.html)
@@ -97,6 +98,10 @@ def prepare(lang):
           'bool store_delete(int slot) {\n  return true;\n')
     patch(os.path.join(c, 'alarm_store.c'), 'void store_set_snooze_until(int slot, time_t when) {\n',
           'void store_set_snooze_until(int slot, time_t when) {\n  return;\n')
+    if LEFT:
+        patch(os.path.join(c, 'theme.c'),
+              's_left_handed = persist_exists(KEY_LEFT_HANDED) && persist_read_bool(KEY_LEFT_HANDED);',
+              's_left_handed = true;')
     if RING:
         # ringing screen of slot 1 right after start, clock fixed at 7:00, no auto snooze
         patch(os.path.join(c, 'wristwake.c'), '  if (ring_mask) {', '  ring_mask = 0x01;\n  if (ring_mask) {')
@@ -165,14 +170,14 @@ def to_levels(rgb):
     return min(SUNLIGHT, key=lambda e: sum((a - b) ** 2 for a, b in zip(e[0], rgb)))[1]
 
 
-def capture_ring(lang):
+def capture_ring(lang, left=False):
     """Screenshot of the ringing screen (slot 1, clock fixed at 7:00)."""
-    global RING
-    RING = True
+    global RING, LEFT
+    RING, LEFT = True, left
     try:
         prepare(lang)
     finally:
-        RING = False
+        RING, LEFT = False, False
     code, out = run(['pebble', 'build'], WORK, timeout=300)
     if code != 0:
         sys.exit('Build failed:\n' + out)
@@ -181,7 +186,7 @@ def capture_ring(lang):
     if code != 0:
         sys.exit('Install failed:\n' + out)
     time.sleep(3)
-    return shoot('ring_' + lang)
+    return shoot(('ring_left_' if left else 'ring_') + lang)
 
 
 def fit(rgb, cache):
