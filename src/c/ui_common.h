@@ -35,6 +35,9 @@ const char *ui_sound_name(AlarmSound sound);
 const char *ui_vibe_name(int pattern);
 const char *ui_snooze_name(uint8_t minutes);
 const char *ui_volume_name(AlarmVolume volume);
+const char *ui_challenge_name(AlarmChallenge challenge);
+// Pause of the Follow challenge as text, e.g. "0.5 s" / "0,5 s"
+const char *ui_pause_name(int index);
 
 // Short message that closes itself after about 2 seconds.
 void ui_show_message(const char *text);

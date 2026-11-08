@@ -59,6 +59,24 @@ void ui_format_days(char *buf, size_t size, uint8_t days) {
   }
 }
 
+const char *ui_pause_name(int index) {
+  switch (index) {
+    case 0:  return TR("0.5 s", "0,5 s");
+    case 2:  return "2 s";
+    case 3:  return "3 s";
+    case 4:  return "4 s";
+    default: return "1 s";
+  }
+}
+
+const char *ui_challenge_name(AlarmChallenge challenge) {
+  switch (challenge) {
+    case CHALLENGE_FOLLOW: return TR("Follow", "Folgen");
+    case CHALLENGE_GUESS:  return TR("Guess", "Raten");
+    default:               return TR("Off", "Aus");
+  }
+}
+
 const char *ui_volume_name(AlarmVolume volume) {
   switch (volume) {
     case ALARM_VOLUME_QUIET: return TR("Quiet", "Sehr leise");

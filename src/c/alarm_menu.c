@@ -5,6 +5,7 @@
 #include "pickers.h"
 #include "vibe_menu.h"
 #include "volume_menu.h"
+#include "challenge_menu.h"
 #include "i18n.h"
 
 // Day presets; "Custom" opens the checkbox list
@@ -248,7 +249,13 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       break;
     case ROW_CHALLENGE:
       title = TR("Challenge", "Weckaufgabe");
-      toggle = a->challenge;
+      if (a->challenge == CHALLENGE_FOLLOW) {
+        snprintf(s_subtitle, sizeof(s_subtitle), "%s, %d, %s", ui_challenge_name(a->challenge),
+                 a->challenge_len, ui_pause_name(a->challenge_pause));
+        subtitle = s_subtitle;
+      } else {
+        subtitle = ui_challenge_name(a->challenge);
+      }
       break;
     case ROW_PROTECT:
       title = TR("Protection", "Schutz");
@@ -332,8 +339,7 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
       break;
     }
     case ROW_CHALLENGE:
-      a.challenge = !a.challenge;
-      prv_save(&a);
+      challenge_menu_show(s_slot);  // mode, length and pause
       break;
     case ROW_PROTECT:
       a.protect = !a.protect;

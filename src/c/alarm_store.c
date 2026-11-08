@@ -1,7 +1,7 @@
 #include "alarm_store.h"
 
 // Persistent storage keys (theme: 10-12, see theme.c; status: 5, see comms.c)
-#define STORE_SCHEMA_VERSION 8
+#define STORE_SCHEMA_VERSION 9
 #define KEY_SCHEMA      1
 #define KEY_WATCH_ID    2
 #define KEY_WATCH_NAME  3
@@ -12,6 +12,7 @@
 #define DEFAULT_WATCH_NAME "Pebble"
 
 const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT] = {0, 5, 10, 15, 30, 60};
+const uint16_t CHALLENGE_PAUSES_MS[CHALLENGE_PAUSE_COUNT] = {500, 1000, 2000, 3000, 4000};
 
 static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
   "off", "reveille", "beep", "chime", "rising_beep", "korobeiniki", "westminster", "field_agent",
@@ -20,6 +21,7 @@ static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
 };
 
 static const char *const VOLUME_KEYS[ALARM_VOLUME_COUNT] = {"quiet", "low", "medium", "high"};
+static const char *const CHALLENGE_KEYS[CHALLENGE_COUNT] = {"off", "follow", "guess"};
 
 static const char *const VIBE_KEYS[VIBE_PATTERN_COUNT] = {
   "standard", "pulse", "double", "heartbeat", "rising", "sos", "long", "gentle", "aurora"
@@ -115,7 +117,11 @@ static void prv_sanitize(Alarm *alarm) {
   if (alarm->vibe_pattern >= VIBE_PATTERN_COUNT) alarm->vibe_pattern = DEFAULT_VIBE_PATTERN;
   alarm->protect = alarm->protect ? 1 : 0;
   if (alarm->volume >= ALARM_VOLUME_COUNT) alarm->volume = DEFAULT_VOLUME;
-  alarm->challenge = alarm->challenge ? 1 : 0;
+  if (alarm->challenge >= CHALLENGE_COUNT) alarm->challenge = CHALLENGE_OFF;
+  if (alarm->challenge_len < CHALLENGE_LEN_MIN || alarm->challenge_len > CHALLENGE_LEN_MAX) {
+    alarm->challenge_len = DEFAULT_CHALLENGE_LEN;
+  }
+  if (alarm->challenge_pause >= CHALLENGE_PAUSE_COUNT) alarm->challenge_pause = DEFAULT_CHALLENGE_PAUSE;
 }
 
 static void prv_generate_watch_id(void) {
@@ -168,10 +174,15 @@ static void prv_migrate_old(int32_t schema) {
       uint8_t v = raw[offsetof(Alarm, volume)];
       alarm.volume = v < ARRAY_LENGTH(MAP6) ? MAP6[v] : DEFAULT_VOLUME;
     }
+    alarm.challenge = CHALLENGE_OFF;
     if (schema == 7 && read >= (int)offsetof(Alarm, challenge)) {
-      memcpy(&alarm, raw, offsetof(Alarm, challenge));   // schema 7 = current layout without challenge
+      memcpy(&alarm, raw, offsetof(Alarm, challenge));       // schema 7: no challenge yet
     }
-    alarm.challenge = 0;
+    if (schema == 8 && read >= (int)offsetof(Alarm, challenge_len)) {
+      memcpy(&alarm, raw, offsetof(Alarm, challenge_len));   // schema 8: no length/pause yet
+    }
+    alarm.challenge_len = DEFAULT_CHALLENGE_LEN;
+    alarm.challenge_pause = DEFAULT_CHALLENGE_PAUSE;
     persist_write_data(key, &alarm, sizeof(alarm));
   }
   for (int k = 0; k < 3; k++) persist_delete(KEY_OLD_VIBE_MS + k);
@@ -250,6 +261,8 @@ void store_alarm_defaults(Alarm *alarm) {
   alarm->snooze = DEFAULT_SNOOZE;
   alarm->vibe_pattern = DEFAULT_VIBE_PATTERN;
   alarm->volume = DEFAULT_VOLUME;
+  alarm->challenge_len = DEFAULT_CHALLENGE_LEN;
+  alarm->challenge_pause = DEFAULT_CHALLENGE_PAUSE;
 }
 
 bool store_save(int slot, const Alarm *alarm) {
@@ -311,6 +324,10 @@ bool store_set_watch_name(const char *name) {
 
 const char *alarm_sound_key(AlarmSound sound) {
   return (sound < ALARM_SOUND_COUNT) ? SOUND_KEYS[sound] : SOUND_KEYS[ALARM_SOUND_OFF];
+}
+
+const char *alarm_challenge_key(AlarmChallenge challenge) {
+  return (challenge < CHALLENGE_COUNT) ? CHALLENGE_KEYS[challenge] : CHALLENGE_KEYS[CHALLENGE_OFF];
 }
 
 const char *alarm_volume_key(AlarmVolume volume) {

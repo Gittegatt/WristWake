@@ -49,6 +49,22 @@ typedef enum {
   ALARM_VOLUME_COUNT
 } AlarmVolume;
 
+// Challenge before an alarm can be stopped (numbers are persisted)
+typedef enum {
+  CHALLENGE_OFF = 0,
+  CHALLENGE_FOLLOW,   // press the shown buttons one after the other
+  CHALLENGE_GUESS,    // guess hidden buttons; a wrong guess starts over
+  CHALLENGE_COUNT
+} AlarmChallenge;
+
+// Follow challenge: number of buttons (4-10) and pause before the next button appears
+#define CHALLENGE_LEN_MIN 4
+#define CHALLENGE_LEN_MAX 10
+#define DEFAULT_CHALLENGE_LEN 4
+#define CHALLENGE_PAUSE_COUNT 5
+#define DEFAULT_CHALLENGE_PAUSE 1   // index into CHALLENGE_PAUSES_MS (1 s)
+extern const uint16_t CHALLENGE_PAUSES_MS[CHALLENGE_PAUSE_COUNT];
+
 // Built-in vibration patterns (sequences in alert.c)
 typedef enum {
   VIBE_STANDARD = 0,
@@ -90,7 +106,9 @@ typedef struct {
   uint8_t vibe_pattern;        // VibePattern_t, since schema 4
   uint8_t protect;             // 1 = protected against deletion, since schema 5
   uint8_t volume;              // AlarmVolume, since schema 6 (4 levels since schema 7)
-  uint8_t challenge;           // 1 = solve a button pattern before stopping, since schema 8
+  uint8_t challenge;           // AlarmChallenge, since schema 8
+  uint8_t challenge_len;       // Follow: number of buttons, since schema 9
+  uint8_t challenge_pause;     // Follow: index into CHALLENGE_PAUSES_MS, since schema 9
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).
@@ -136,4 +154,5 @@ bool store_set_watch_name(const char *name);
 const char *alarm_sound_key(AlarmSound sound);
 const char *alarm_vibe_key(VibePattern_t pattern);
 const char *alarm_volume_key(AlarmVolume volume);
+const char *alarm_challenge_key(AlarmChallenge challenge);
 bool alarm_snooze_valid(uint8_t minutes);

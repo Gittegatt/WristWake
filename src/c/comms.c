@@ -79,8 +79,9 @@ static void prv_build_state(void) {
     APPEND(",\"h\":%d,\"m\":%d,\"d\":%d,\"e\":%d,\"so\":\"%s\",\"vi\":%d,\"p\":\"%s\"",
            a->hour, a->minute, a->days, a->enabled, alarm_sound_key(a->sound), a->vibrate,
            alarm_vibe_key(a->vibe_pattern));
-    APPEND(",\"z\":%d,\"pr\":%d,\"vo\":\"%s\",\"ch\":%d,\"r\":%lu,\"nx\":%ld}", a->snooze,
-           a->protect, alarm_volume_key(a->volume), a->challenge,
+    APPEND(",\"z\":%d,\"pr\":%d,\"vo\":\"%s\",\"ch\":\"%s\",\"cl\":%d,\"cp\":%d,\"r\":%lu,\"nx\":%ld}", a->snooze,
+           a->protect, alarm_volume_key(a->volume), alarm_challenge_key(a->challenge),
+           a->challenge_len, CHALLENGE_PAUSES_MS[a->challenge_pause],
            (unsigned long)a->rev, (long)scheduler_next_time(slot));
   }
   APPEND("]}");
@@ -177,7 +178,13 @@ static void prv_start_test(int slot) {
   }
   if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;
   bool used = a && a->used;
-  ring_show_test(&p, !(used && a->snooze == 0), used && a->challenge);
+  RingChallenge ch = {CHALLENGE_OFF, DEFAULT_CHALLENGE_LEN, 1000};
+  if (used) {
+    ch.mode = a->challenge;
+    ch.length = a->challenge_len;
+    ch.pause_ms = CHALLENGE_PAUSES_MS[a->challenge_pause];
+  }
+  ring_show_test(&p, !(used && a->snooze == 0), &ch);
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {
