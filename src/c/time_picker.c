@@ -29,6 +29,16 @@ static void prv_draw_arrow(GContext *ctx, GPoint tip, bool up, GColor color) {
 
 static int s_pan_accum;
 
+// Scroll animation of a number box: the new value rolls in, the old one rolls out
+#define ANIM_FRAMES 6
+#define ANIM_FRAME_MS 20
+static Layer *s_box_layers[2];
+static int s_anim_field = -1;   // box being animated, -1 = none
+static int s_anim_dir;          // +1 = value increased (new value comes from the top)
+static int s_anim_step;
+static uint8_t s_prev_value;    // value shown before the change
+static AppTimer *s_anim_timer;
+
 static void prv_box_rects(GRect b, GRect *boxes) {
   int y = 70;
   int x0 = (b.size.w - (2 * BOX_W + BOX_GAP)) / 2;
@@ -39,6 +49,58 @@ static void prv_box_rects(GRect b, GRect *boxes) {
 // Large "OK" button across almost the full width, easy to tap
 static GRect prv_ok_rect(GRect b) {
   return GRect(10, b.size.h - 50, b.size.w - 20, 44);
+}
+
+// Text of a box: hour in the selected clock format, or minute
+static void prv_value_text(int field, uint8_t value, char *buf, size_t size) {
+  if (field == 1) {
+    snprintf(buf, size, "%02d", value);
+  } else if (clock_is_24h_style()) {
+    snprintf(buf, size, "%02d", value);
+  } else {
+    int h12 = value % 12;
+    snprintf(buf, size, "%d", h12 == 0 ? 12 : h12);
+  }
+}
+
+// One number box (its own layer, so the rolling numbers are clipped to the box)
+static void prv_box_draw(Layer *layer, GContext *ctx) {
+  int i = *(int *)layer_get_data(layer);
+  GRect r = layer_get_bounds(layer);
+  const Theme *t = theme();
+  bool sel = (i == s_field);
+  if (sel) {
+    graphics_context_set_fill_color(ctx, t->hl_bg);
+    graphics_fill_rect(ctx, r, 6, GCornersAll);
+  } else {
+    graphics_context_set_stroke_color(ctx, t->faint);
+    graphics_context_set_stroke_width(ctx, 2);
+    graphics_draw_round_rect(ctx, grect_inset(r, GEdgeInsets(1)), 6);
+    graphics_context_set_stroke_width(ctx, 1);
+  }
+  graphics_context_set_text_color(ctx, sel ? t->hl_fg : t->fg);
+  GFont big = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
+  char buf[4];
+  prv_value_text(i, i == 0 ? s_hour : s_minute, buf, sizeof(buf));
+  if (s_anim_field == i && s_anim_step < ANIM_FRAMES) {
+    int moved = BOX_H * s_anim_step / ANIM_FRAMES;   // distance travelled so far
+    char old[4];
+    prv_value_text(i, s_prev_value, old, sizeof(old));
+    graphics_draw_text(ctx, old, big, GRect(0, 2 + s_anim_dir * moved, BOX_W, BOX_H),
+                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, buf, big, GRect(0, 2 - s_anim_dir * (BOX_H - moved), BOX_W, BOX_H),
+                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  } else {
+    graphics_draw_text(ctx, buf, big, GRect(0, 2, BOX_W, BOX_H),
+                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  }
+}
+
+static void prv_redraw(void) {
+  layer_mark_dirty(s_layer);
+  for (int i = 0; i < 2; i++) {
+    if (s_box_layers[i]) layer_mark_dirty(s_box_layers[i]);
+  }
 }
 
 static void prv_draw(Layer *layer, GContext *ctx) {
@@ -60,43 +122,17 @@ static void prv_draw(Layer *layer, GContext *ctx) {
                      GRect(ok.origin.x, ok.origin.y + 3, ok.size.w, ok.size.h),
                      GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
-  // hour in the selected clock format
-  char hour_buf[4], min_buf[4];
-  const char *ampm = NULL;
-  if (clock_is_24h_style()) {
-    snprintf(hour_buf, sizeof(hour_buf), "%02d", s_hour);
-  } else {
-    int h12 = s_hour % 12;
-    snprintf(hour_buf, sizeof(hour_buf), "%d", h12 == 0 ? 12 : h12);
-    ampm = s_hour < 12 ? "AM" : "PM";
-  }
-  snprintf(min_buf, sizeof(min_buf), "%02d", s_minute);
+  const char *ampm = clock_is_24h_style() ? NULL : (s_hour < 12 ? "AM" : "PM");
 
   GRect boxes[2];
   prv_box_rects(b, boxes);
   const int box_w = BOX_W, box_h = BOX_H, gap = BOX_GAP;
   int y = boxes[0].origin.y;
   int x0 = boxes[0].origin.x;
-  const char *texts[2] = {hour_buf, min_buf};
-  GFont big = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
-
-  for (int i = 0; i < 2; i++) {
-    bool sel = (i == s_field);
-    if (sel) {
-      graphics_context_set_fill_color(ctx, t->hl_bg);
-      graphics_fill_rect(ctx, boxes[i], 6, GCornersAll);
-      prv_draw_arrow(ctx, GPoint(boxes[i].origin.x + box_w / 2, y - 16), true, t->fg);
-      prv_draw_arrow(ctx, GPoint(boxes[i].origin.x + box_w / 2, y + box_h + 16), false, t->fg);
-    } else {
-      graphics_context_set_stroke_color(ctx, t->faint);
-      graphics_context_set_stroke_width(ctx, 2);
-      graphics_draw_round_rect(ctx, boxes[i], 6);
-      graphics_context_set_stroke_width(ctx, 1);
-    }
-    graphics_context_set_text_color(ctx, sel ? t->hl_fg : t->fg);
-    graphics_draw_text(ctx, texts[i], big, GRect(boxes[i].origin.x, y + 2, box_w, box_h),
-                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-  }
+  // arrows above and below the selected box (the boxes themselves are child layers)
+  GRect sel = boxes[s_field];
+  prv_draw_arrow(ctx, GPoint(sel.origin.x + box_w / 2, y - 16), true, t->fg);
+  prv_draw_arrow(ctx, GPoint(sel.origin.x + box_w / 2, y + box_h + 16), false, t->fg);
   // colon
   graphics_context_set_fill_color(ctx, t->fg);
   int cx = x0 + box_w + gap / 2;
@@ -111,13 +147,29 @@ static void prv_draw(Layer *layer, GContext *ctx) {
   }
 }
 
+static void prv_anim_frame(void *data) {
+  s_anim_timer = NULL;
+  s_anim_step++;
+  if (s_anim_step < ANIM_FRAMES) {
+    s_anim_timer = app_timer_register(ANIM_FRAME_MS, prv_anim_frame, NULL);
+  } else {
+    s_anim_field = -1;
+  }
+  prv_redraw();
+}
+
 static void prv_change(int delta) {
+  s_prev_value = (s_field == 0) ? s_hour : s_minute;
+  s_anim_field = s_field;
+  s_anim_dir = delta > 0 ? 1 : -1;
+  s_anim_step = 0;
+  if (!s_anim_timer) s_anim_timer = app_timer_register(ANIM_FRAME_MS, prv_anim_frame, NULL);
   if (s_field == 0) {
     s_hour = (s_hour + 24 + delta) % 24;
   } else {
     s_minute = (s_minute + 60 + delta) % 60;
   }
-  layer_mark_dirty(s_layer);
+  prv_redraw();
 }
 
 static void prv_up(ClickRecognizerRef r, void *c) { prv_change(1); }
@@ -148,7 +200,7 @@ static void prv_tap(const Recognizer *recognizer, RecognizerEvent event) {
     prv_confirm();
     return;
   }
-  layer_mark_dirty(s_layer);
+  prv_redraw();
 }
 
 // Touch: swipe down = more, swipe up = less (like a scroll wheel)
@@ -169,7 +221,7 @@ static void prv_pan(const Recognizer *recognizer, RecognizerEvent event) {
 static void prv_select(ClickRecognizerRef r, void *c) {
   if (s_field == 0) {
     s_field = 1;
-    layer_mark_dirty(s_layer);
+    prv_redraw();
     return;
   }
   prv_confirm();
@@ -178,7 +230,7 @@ static void prv_select(ClickRecognizerRef r, void *c) {
 static void prv_back(ClickRecognizerRef r, void *c) {
   if (s_field == 1) {
     s_field = 0;
-    layer_mark_dirty(s_layer);
+    prv_redraw();
     return;
   }
   window_stack_remove(s_window, true);  // cancel
@@ -196,6 +248,14 @@ static void prv_load(Window *window) {
   s_layer = layer_create(layer_get_bounds(root));
   layer_set_update_proc(s_layer, prv_draw);
   layer_add_child(root, s_layer);
+  GRect boxes[2];
+  prv_box_rects(layer_get_bounds(root), boxes);
+  for (int i = 0; i < 2; i++) {
+    s_box_layers[i] = layer_create_with_data(boxes[i], sizeof(int));
+    *(int *)layer_get_data(s_box_layers[i]) = i;
+    layer_set_update_proc(s_box_layers[i], prv_box_draw);
+    layer_add_child(s_layer, s_box_layers[i]);
+  }
   // Own touch handling instead of the automatic button emulation
   window_set_touch_bridge_disabled(window, true);
   window_attach_recognizer(window, tap_recognizer_create(prv_tap, NULL));
@@ -203,6 +263,15 @@ static void prv_load(Window *window) {
 }
 
 static void prv_unload(Window *window) {
+  if (s_anim_timer) {
+    app_timer_cancel(s_anim_timer);
+    s_anim_timer = NULL;
+  }
+  s_anim_field = -1;
+  for (int i = 0; i < 2; i++) {
+    layer_destroy(s_box_layers[i]);
+    s_box_layers[i] = NULL;
+  }
   layer_destroy(s_layer);
   window_destroy(window);
   s_window = NULL;
