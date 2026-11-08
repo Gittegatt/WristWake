@@ -155,6 +155,31 @@ static const SpeakerNote MELODY_WESTMINSTER[] = {
   REST(2 * WQ_Q),
 };
 
+// Yurop: "Ode to Joy" from Beethoven's 9th symphony (public domain), the melody of the
+// European anthem (Beethoven's original tune, not the copyrighted orchestral arrangement).
+// D major, quarter = 120; lengths in eighths.
+#define YU_8 250
+#define YU_N(midi, n8) NOTE(midi, (n8) * YU_8 - 30, TRI), REST(30)
+#define YU_D 74
+#define YU_E 76
+#define YU_FS 78
+#define YU_G 79
+#define YU_A 81
+#define YU_LA 69
+#define YU_LINE YU_N(YU_FS, 2), YU_N(YU_FS, 2), YU_N(YU_G, 2), YU_N(YU_A, 2), \
+                YU_N(YU_A, 2), YU_N(YU_G, 2), YU_N(YU_FS, 2), YU_N(YU_E, 2), \
+                YU_N(YU_D, 2), YU_N(YU_D, 2), YU_N(YU_E, 2), YU_N(YU_FS, 2)
+static const SpeakerNote MELODY_YUROP[] = {
+  YU_LINE, YU_N(YU_FS, 3), YU_N(YU_E, 1), YU_N(YU_E, 4),
+  YU_LINE, YU_N(YU_E, 3), YU_N(YU_D, 1), YU_N(YU_D, 4),
+  YU_N(YU_E, 2), YU_N(YU_E, 2), YU_N(YU_FS, 2), YU_N(YU_D, 2),
+  YU_N(YU_E, 2), YU_N(YU_FS, 1), YU_N(YU_G, 1), YU_N(YU_FS, 2), YU_N(YU_D, 2),
+  YU_N(YU_E, 2), YU_N(YU_FS, 1), YU_N(YU_G, 1), YU_N(YU_FS, 2), YU_N(YU_E, 2),
+  YU_N(YU_D, 2), YU_N(YU_E, 2), YU_N(YU_LA, 4),
+  YU_LINE, YU_N(YU_E, 3), YU_N(YU_D, 1), YU_N(YU_D, 4),
+  REST(4 * YU_8),
+};
+
 static AlarmSound s_sound;
 static uint8_t s_volume;
 static bool s_sound_on;
@@ -181,6 +206,8 @@ static void prv_play_once(void) {
       notes = MELODY_KOROBEINIKI; count = ARRAY_LENGTH(MELODY_KOROBEINIKI); break;
     case ALARM_SOUND_WESTMINSTER:
       notes = MELODY_WESTMINSTER; count = ARRAY_LENGTH(MELODY_WESTMINSTER); break;
+    case ALARM_SOUND_YUROP:
+      notes = MELODY_YUROP; count = ARRAY_LENGTH(MELODY_YUROP); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {

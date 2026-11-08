@@ -25,6 +25,7 @@ typedef enum {
   ALARM_SOUND_RISING,
   ALARM_SOUND_KOROBEINIKI,   // always append new sounds (numbers are persisted)
   ALARM_SOUND_WESTMINSTER,
+  ALARM_SOUND_YUROP,
   ALARM_SOUND_COUNT
 } AlarmSound;
 
