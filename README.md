@@ -31,6 +31,8 @@ I designed the concept, the features and the look of this watchapp myself, down 
 Coming next:
 - Android companion alarm app that enables two-way sync between Home Assistant, your Pebble and your Android phone.
 
+If you would like a new feature, please let me know.
+
 ## Run in the emulator
 
 Both ways build the app and open it in the Pebble Time 2 emulator:
