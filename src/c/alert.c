@@ -76,13 +76,40 @@ void alert_preview_vibe(VibePattern_t pattern) {
 #define SQR SpeakerWaveformSquare
 #define SIN SpeakerWaveformSine
 
-// Reveille: traditional bugle call (public domain), on the notes G-C-E-G
+// Reveille: the traditional US bugle call (public domain), 2/4 at quarter = 152,
+// sounding pitch of a B-flat bugle (written G4 C5 E5 G5 -> F4 Bb4 D5 F5).
+// RV_N = detached note (short gap after it, so repeated notes stay distinct),
+// RV_L = slurred note (no gap). Lengths in sixteenths.
+#define RV_16 99
+#define RV_GAP 25
+#define RV_N(midi, n16) NOTE(midi, (n16) * RV_16 - RV_GAP, TRI), REST(RV_GAP)
+#define RV_L(midi, n16) NOTE(midi, (n16) * RV_16, TRI)
+#define RV_G 65
+#define RV_C 70
+#define RV_E 74
+#define RV_GH 77
+// "c e/c g e" bar and its two variants
+#define RV_BAR_A RV_N(RV_C, 2), RV_L(RV_E, 1), RV_N(RV_C, 1), RV_N(RV_G, 2), RV_N(RV_E, 2)
+#define RV_BAR_B RV_N(RV_C, 2), RV_L(RV_E, 1), RV_N(RV_C, 1), RV_N(RV_G, 2), RV_N(RV_C, 2)
+#define RV_BAR_C RV_N(RV_C, 2), RV_L(RV_E, 1), RV_N(RV_C, 1), RV_N(RV_G, 2), RV_N(RV_G, 2)
+#define RV_BAR_D RV_L(RV_E, 4), RV_N(RV_C, 2), RV_N(RV_G, 2)
+#define RV_FIRST_PART RV_BAR_A, RV_BAR_A, RV_BAR_B, RV_BAR_D, RV_BAR_A, RV_BAR_A, RV_BAR_C
+
 static const SpeakerNote MELODY_REVEILLE[] = {
-  NOTE(67, 120, TRI), NOTE(72, 120, TRI), NOTE(76, 240, TRI), NOTE(72, 240, TRI),
-  NOTE(67, 120, TRI), NOTE(72, 120, TRI), NOTE(76, 240, TRI), NOTE(72, 240, TRI),
-  NOTE(67, 120, TRI), NOTE(72, 120, TRI), NOTE(76, 240, TRI), NOTE(72, 120, TRI),
-  NOTE(76, 120, TRI), NOTE(79, 480, TRI), NOTE(76, 240, TRI), NOTE(72, 480, TRI),
-  REST(800),
+  RV_N(RV_G, 2),                                                          // pickup
+  RV_FIRST_PART,                                                          // bars 1-7
+  RV_N(RV_C, 6), RV_N(RV_E, 2),                                           // bar 8
+  RV_N(RV_E, 2), RV_N(RV_E, 2), RV_N(RV_E, 2), RV_N(RV_E, 2),             // bar 9
+  RV_L(RV_GH, 4), RV_N(RV_E, 2), RV_N(RV_C, 2),                           // bar 10
+  RV_N(RV_E, 2), RV_N(RV_C, 2), RV_N(RV_E, 2), RV_N(RV_C, 2),             // bar 11
+  RV_L(RV_E, 4), RV_N(RV_C, 2), RV_N(RV_E, 2),                            // bar 12
+  RV_N(RV_E, 2), RV_N(RV_E, 2), RV_N(RV_E, 2), RV_N(RV_E, 2),             // bar 13
+  RV_L(RV_GH, 4), RV_N(RV_E, 2), RV_N(RV_C, 2),                           // bar 14
+  RV_N(RV_E, 2), RV_N(RV_C, 2), RV_N(RV_G, 2), RV_N(RV_G, 2),             // bar 15
+  RV_N(RV_C, 6), RV_N(RV_G, 2),                                           // bar 16
+  RV_FIRST_PART,                                                          // bars 17-23
+  RV_N(RV_C, 6),                                                          // bar 24
+  REST(1200),
 };
 
 static const SpeakerNote MELODY_BEEP[] = {
