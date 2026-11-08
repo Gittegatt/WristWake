@@ -36,8 +36,9 @@ static void prv_box_rects(GRect b, GRect *boxes) {
   boxes[1] = GRect(x0 + BOX_W + BOX_GAP, y, BOX_W, BOX_H);
 }
 
+// Large "OK" button across almost the full width, easy to tap
 static GRect prv_ok_rect(GRect b) {
-  return GRect(b.size.w / 2 - 50, b.size.h - 42, 100, 34);
+  return GRect(10, b.size.h - 50, b.size.w - 20, 44);
 }
 
 static void prv_draw(Layer *layer, GContext *ctx) {
@@ -55,8 +56,8 @@ static void prv_draw(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, t->bar_bg);
   graphics_fill_rect(ctx, ok, 8, GCornersAll);
   graphics_context_set_text_color(ctx, t->bar_fg);
-  graphics_draw_text(ctx, "OK", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(ok.origin.x, ok.origin.y + 1, ok.size.w, ok.size.h),
+  graphics_draw_text(ctx, "OK", fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+                     GRect(ok.origin.x, ok.origin.y + 3, ok.size.w, ok.size.h),
                      GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
   // hour in the selected clock format
