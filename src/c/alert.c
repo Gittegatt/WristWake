@@ -155,31 +155,6 @@ static const SpeakerNote MELODY_WESTMINSTER[] = {
   REST(2 * WQ_Q),
 };
 
-// Yurop: "Ode to Joy" from Beethoven's 9th symphony (public domain), the melody of the
-// European anthem (Beethoven's original tune, not the copyrighted orchestral arrangement).
-// D major, quarter = 120; lengths in eighths.
-#define YU_8 250
-#define YU_N(midi, n8) NOTE(midi, (n8) * YU_8 - 30, TRI), REST(30)
-#define YU_D 74
-#define YU_E 76
-#define YU_FS 78
-#define YU_G 79
-#define YU_A 81
-#define YU_LA 69
-#define YU_LINE YU_N(YU_FS, 2), YU_N(YU_FS, 2), YU_N(YU_G, 2), YU_N(YU_A, 2), \
-                YU_N(YU_A, 2), YU_N(YU_G, 2), YU_N(YU_FS, 2), YU_N(YU_E, 2), \
-                YU_N(YU_D, 2), YU_N(YU_D, 2), YU_N(YU_E, 2), YU_N(YU_FS, 2)
-static const SpeakerNote MELODY_YUROP[] = {
-  YU_LINE, YU_N(YU_FS, 3), YU_N(YU_E, 1), YU_N(YU_E, 4),
-  YU_LINE, YU_N(YU_E, 3), YU_N(YU_D, 1), YU_N(YU_D, 4),
-  YU_N(YU_E, 2), YU_N(YU_E, 2), YU_N(YU_FS, 2), YU_N(YU_D, 2),
-  YU_N(YU_E, 2), YU_N(YU_FS, 1), YU_N(YU_G, 1), YU_N(YU_FS, 2), YU_N(YU_D, 2),
-  YU_N(YU_E, 2), YU_N(YU_FS, 1), YU_N(YU_G, 1), YU_N(YU_FS, 2), YU_N(YU_E, 2),
-  YU_N(YU_D, 2), YU_N(YU_E, 2), YU_N(YU_LA, 4),
-  YU_LINE, YU_N(YU_E, 3), YU_N(YU_D, 1), YU_N(YU_D, 4),
-  REST(4 * YU_8),
-};
-
 // Field Agent: own electronic pattern - two flickering double tones, a short pause,
 // then a quick rising confirmation tone.
 #define FA_FLICK NOTE(88, 30, SQR), NOTE(93, 30, SQR), NOTE(88, 30, SQR), NOTE(93, 30, SQR), \
@@ -188,21 +163,6 @@ static const SpeakerNote MELODY_FIELD_AGENT[] = {
   FA_FLICK, REST(90), FA_FLICK, REST(260),
   NOTE(81, 70, SQR), REST(20), NOTE(88, 70, SQR), REST(20), NOTE(93, 160, SQR),
   REST(900),
-};
-
-// Speakeasy: own short swing tune with a bar feeling (F major, swung eighths at quarter = 160).
-#define SW_L 250   // long half of a swung eighth pair
-#define SW_S 125   // short half
-#define SW(midi, ms) NOTE(midi, (ms) - 25, TRI), REST(25)
-static const SpeakerNote MELODY_SPEAKEASY[] = {
-  SW(72, SW_L), SW(76, SW_S), SW(79, SW_L), SW(81, SW_S),            // C E G A
-  SW(82, 375), SW(81, SW_L), SW(79, SW_S),                           // Bb - A G
-  SW(77, SW_L), SW(81, SW_S), SW(84, SW_L), SW(86, SW_S),            // F A C D
-  SW(84, 750),                                                       // C
-  SW(82, SW_L), SW(81, SW_S), SW(79, SW_L), SW(76, SW_S),            // Bb A G E
-  SW(77, 375), SW(72, 375),                                          // F C
-  SW(74, SW_L), SW(77, SW_S), SW(81, SW_L), SW(79, SW_S),            // D F A G
-  SW(77, 750), REST(750),                                            // F
 };
 
 // Maple Leaf Rag (Scott Joplin, 1899, public domain): the famous opening four bars,
@@ -233,6 +193,44 @@ static const SpeakerNote MELODY_RONDO[] = {
   RO(76, 4), REST(4 * RO_16),
 };
 
+// Generic patterns (own designs)
+// Classic Ring: old telephone bell - fast trill of two tones, "ring-ring ... pause"
+#define CR_TRILL NOTE(88, 25, SQR), NOTE(91, 25, SQR)
+#define CR_TRILL4 CR_TRILL, CR_TRILL, CR_TRILL, CR_TRILL
+#define CR_RING CR_TRILL4, CR_TRILL4, CR_TRILL4, CR_TRILL4
+static const SpeakerNote MELODY_CLASSIC_RING[] = {
+  CR_RING, REST(300), CR_RING, REST(1800),
+};
+
+// Digital: classic digital alarm clock - four quick beeps, pause
+static const SpeakerNote MELODY_DIGITAL[] = {
+  NOTE(95, 70, SQR), REST(60), NOTE(95, 70, SQR), REST(60),
+  NOTE(95, 70, SQR), REST(60), NOTE(95, 70, SQR), REST(60), REST(500),
+};
+
+// Sunrise: gentle rising major arpeggio, gets louder with every repetition
+static const SpeakerNote MELODY_SUNRISE[] = {
+  NOTE(72, 220, SIN), NOTE(76, 220, SIN), NOTE(79, 220, SIN), NOTE(84, 220, SIN),
+  NOTE(88, 600, SIN), REST(900),
+};
+
+// Siren: two-tone "hi-lo"
+static const SpeakerNote MELODY_SIREN[] = {
+  NOTE(81, 450, TRI), NOTE(76, 450, TRI), NOTE(81, 450, TRI), NOTE(76, 450, TRI), REST(400),
+};
+
+// Chirp: quick rising chirps like a bird
+#define CH_CHIRP NOTE(88, 40, SIN), NOTE(91, 40, SIN), NOTE(95, 40, SIN), REST(120)
+static const SpeakerNote MELODY_CHIRP[] = {
+  CH_CHIRP, CH_CHIRP, CH_CHIRP, REST(900),
+};
+
+// Pulse: soft single tones that come faster and faster
+#define PU(gap) NOTE(84, 120, TRI), REST(gap)
+static const SpeakerNote MELODY_PULSE[] = {
+  PU(700), PU(600), PU(500), PU(400), PU(300), PU(220), PU(160), PU(120), PU(120), PU(120), REST(800),
+};
+
 static AlarmSound s_sound;
 static uint8_t s_volume;
 static bool s_sound_on;
@@ -241,7 +239,7 @@ static void prv_play_once(void);
 
 static void prv_sound_finished(SpeakerFinishReason reason, void *ctx) {
   if (!s_sound_on || reason != SpeakerFinishReasonDone) return;
-  if (s_sound == ALARM_SOUND_RISING && s_volume < 100) {
+  if ((s_sound == ALARM_SOUND_RISING || s_sound == ALARM_SOUND_SUNRISE) && s_volume < 100) {
     s_volume = s_volume + 10 > 100 ? 100 : s_volume + 10;
   }
   prv_play_once();
@@ -259,16 +257,24 @@ static void prv_play_once(void) {
       notes = MELODY_KOROBEINIKI; count = ARRAY_LENGTH(MELODY_KOROBEINIKI); break;
     case ALARM_SOUND_WESTMINSTER:
       notes = MELODY_WESTMINSTER; count = ARRAY_LENGTH(MELODY_WESTMINSTER); break;
-    case ALARM_SOUND_YUROP:
-      notes = MELODY_YUROP; count = ARRAY_LENGTH(MELODY_YUROP); break;
     case ALARM_SOUND_FIELD_AGENT:
       notes = MELODY_FIELD_AGENT; count = ARRAY_LENGTH(MELODY_FIELD_AGENT); break;
-    case ALARM_SOUND_SPEAKEASY:
-      notes = MELODY_SPEAKEASY; count = ARRAY_LENGTH(MELODY_SPEAKEASY); break;
     case ALARM_SOUND_MAPLE_LEAF:
       notes = MELODY_MAPLE_LEAF; count = ARRAY_LENGTH(MELODY_MAPLE_LEAF); break;
     case ALARM_SOUND_RONDO:
       notes = MELODY_RONDO; count = ARRAY_LENGTH(MELODY_RONDO); break;
+    case ALARM_SOUND_CLASSIC_RING:
+      notes = MELODY_CLASSIC_RING; count = ARRAY_LENGTH(MELODY_CLASSIC_RING); break;
+    case ALARM_SOUND_DIGITAL:
+      notes = MELODY_DIGITAL; count = ARRAY_LENGTH(MELODY_DIGITAL); break;
+    case ALARM_SOUND_SUNRISE:
+      notes = MELODY_SUNRISE; count = ARRAY_LENGTH(MELODY_SUNRISE); break;
+    case ALARM_SOUND_SIREN:
+      notes = MELODY_SIREN; count = ARRAY_LENGTH(MELODY_SIREN); break;
+    case ALARM_SOUND_CHIRP:
+      notes = MELODY_CHIRP; count = ARRAY_LENGTH(MELODY_CHIRP); break;
+    case ALARM_SOUND_PULSE:
+      notes = MELODY_PULSE; count = ARRAY_LENGTH(MELODY_PULSE); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {
@@ -292,7 +298,7 @@ void alert_start(const AlertParams *p) {
       APP_LOG(APP_LOG_LEVEL_INFO, "Speaker muted, vibration only");
     } else {
       s_sound = sound;
-      s_volume = (sound == ALARM_SOUND_RISING) ? 30 : 80;
+      s_volume = (sound == ALARM_SOUND_RISING || sound == ALARM_SOUND_SUNRISE) ? 30 : 80;
       s_sound_on = true;
       speaker_set_finish_callback(prv_sound_finished, NULL);
       prv_play_once();
