@@ -1,0 +1,13 @@
+# Build output
+build/
+node_modules/
+.lock-waf*
+*.pbw
+# built from src/config/index.html
+src/pkjs/config_html.js
+
+# Never commit local secrets (tokens, webhook addresses)
+*.local.*
+secrets*
+.env
+__pycache__/

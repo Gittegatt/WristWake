@@ -1,0 +1,4 @@
+# Keep Linux line endings, the project is built in WSL
+* text=auto eol=lf
+# Windows launcher files need Windows line endings
+*.cmd text eol=crlf

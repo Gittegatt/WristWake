@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>WristWake</title>
+<style>
+  /* Layout modeled on Clay (Pebble's standard settings pages, MIT license),
+     colors as a darker night variant with a muted orange. Clay's own font
+     (PF Din, licensed) is not used; a similar condensed system font instead. */
+  :root {
+    --bg: #0c0e12;          /* Clay: #333333 */
+    --section: #181b21;     /* Clay: #484848 */
+    --heading: #13161b;     /* Clay: #414141 */
+    --divider: #262b33;     /* Clay: #666666 */
+    --shadow: #050608;      /* Clay: #2f2f2f */
+    --text: #d6dae1;        /* Clay: #ffffff */
+    --desc: #7a8291;        /* Clay: #a4a4a4 */
+    --field: #0c0e12;       /* Clay: #333333 */
+    --placeholder: #4d5462; /* Clay: #858585 */
+    --orange: #b8410e;      /* Clay: #ff4700 */
+    --orange-hi: #d24c12;   /* Clay: #ff0000 (pressed) */
+    --button: #2c313a;      /* Clay: #767676 */
+    --button-hi: #3a404b;   /* Clay: #858585 */
+    --ok: #1f7a3c; --err: #d65151;
+    --din: "sans-serif-condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background-color: var(--bg); color: var(--text); font-size: 17px; line-height: 1.4;
+               font-family: var(--din); -webkit-font-smoothing: antialiased; }
+  body { padding: 0 0.75rem 0.7rem; }
+  h1, h4 { text-transform: uppercase; font-weight: 500; position: relative; top: 0.05rem; line-height: 0.9; }
+  h1 { font-size: 2rem; line-height: 2.8rem; }
+  h4 { font-size: 1.2rem; line-height: 1.4rem; }
+  .page-title { padding: 0.7rem 0.75rem 0; }
+  .component { padding-top: 0.7rem; }
+  .section { background: var(--section); border-radius: 0.25rem; box-shadow: var(--shadow) 0 0.15rem 0.25rem;
+             margin-top: 1rem; }
+  .section .component { padding: 0 0.75rem 0.7rem; position: relative; }
+  .section .component + .component::after,
+  .section .component + div > .component:first-child::after,
+  #alarms > .component.alarm-head::after { content: ""; background: var(--divider); display: block;
+             position: absolute; top: 0; left: 0.375rem; right: 0.375rem; height: 1px; }
+  #alarms > .component + .component-input::after { display: none; }
+  .section > .component-heading:first-child { background: var(--heading); border-radius: 0.25rem 0.25rem 0 0;
+             padding-top: 0.7rem; padding-bottom: 0.7rem; }
+  .section > .component-heading + .component::after { display: none; }
+  label, .row { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0.75rem;
+                margin: 0 -0.75rem; }
+  .tap-highlight { -webkit-tap-highlight-color: rgba(255,255,255,0.06); border-radius: 0.25rem; cursor: pointer; }
+  .tap-highlight:active { background-color: rgba(255,255,255,0.06); }
+  .description { padding: 0 0 0.7rem; font-size: 0.9rem; line-height: 1.4rem; color: var(--desc); }
+  .component-input label { display: block; }
+  .component-input .input { margin-top: 0.7rem; display: block; }
+  input[type=text], input[type=password], input[type=url] {
+    display: block; width: 100%; background: var(--field); border-radius: 0.25rem; border: none;
+    padding: 0.35rem 0.375rem; color: var(--text); font: inherit; min-height: 2.1rem; appearance: none; }
+  input::placeholder { color: var(--placeholder); }
+  input:focus { outline: 1px solid var(--orange); }
+  .component-select .value { position: relative; padding-right: 1.1rem; }
+  .component-select .value::after { content: ""; position: absolute; right: 0; top: 50%; margin-top: -0.1rem;
+             border-left: 0.3rem solid transparent; border-right: 0.3rem solid transparent;
+             border-top: 0.4rem solid var(--orange); }
+  .component-select select { position: absolute; inset: 0; opacity: 0; width: 100%; font: inherit; }
+  .component-select label { position: relative; }
+  .component-color .value { width: 2.3rem; height: 1.4rem; border-radius: 0.7rem; display: block;
+             box-shadow: 0 0.1rem 0.1rem var(--shadow); flex: none; }
+  button { font-family: var(--din); font-weight: 500; font-size: 1rem; line-height: 1.4rem; text-transform: uppercase;
+           background-color: var(--button); border-radius: 0.25rem; border: none; display: inline-block;
+           color: var(--text); min-width: 12rem; text-align: center; padding: 0.6rem; cursor: pointer; }
+  button:active { background-color: var(--button-hi); }
+  button.primary { background-color: var(--orange); color: #fbeee6; }
+  button.primary:active { background-color: var(--orange-hi); }
+  button.small { min-width: 0; padding: 0.35rem 0.9rem; font-size: 0.95rem; }
+  button:disabled { opacity: 0.4; }
+  button.saved, button.saved:disabled { background-color: var(--ok); color: #eafbee; opacity: 1; }
+  .component-submit { text-align: center; padding-top: 1rem; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; padding-bottom: 0.7rem; }
+  .status { font-size: 0.9rem; line-height: 1.3rem; color: var(--desc); }
+  .status:empty { display: none; }
+  .status.ok { color: #4fa36a; } .status.err { color: var(--err); }
+  .alarm-time small { font-size: 0.85rem; color: var(--desc); text-transform: none; }
+  .preview { margin: 0 0 0.7rem; border-radius: 0.25rem; overflow: hidden; font-weight: 500; }
+  .preview div { padding: 0.45rem 0.6rem; }
+  .footnote { color: var(--desc); font-size: 0.8rem; text-align: center; padding-top: 0.5rem; }
+  /* Color picker like Clay: honeycomb of the 64 watch colors in a popup */
+  .picker-wrap { position: fixed; inset: 0; padding: 0.7rem 0.375rem; background: rgba(0,0,0,0.7);
+                 display: flex; justify-content: center; align-items: center; z-index: 100; }
+  .picker { padding: 0.7rem 0.75rem; background: var(--section); border-radius: 0.25rem; width: 100%;
+            max-width: 26rem; box-shadow: 0 0.18rem 0.9rem rgba(0,0,0,0.6); }
+  .color-grid { display: grid; grid-template-columns: repeat(9, 1fr); }
+  .color-grid i { aspect-ratio: 1; display: block; }
+  .color-grid i.sel { cursor: pointer; }
+  .color-grid i.selected { transform: scale(1.1); border-radius: 0.25rem; box-shadow: #000 0 0 0.24rem;
+                           position: relative; z-index: 1; }
+  /* Toggle like Clay: track with knob, on = orange */
+  .component-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .component-toggle .track { position: relative; width: 2.3rem; height: 1.4rem; border-radius: 0.7rem;
+             background: var(--button); flex: none; transition: background 0.15s; }
+  .component-toggle .track::after { content: ""; position: absolute; top: 0.15rem; left: 0.15rem; width: 1.1rem;
+             height: 1.1rem; border-radius: 50%; background: var(--desc); transition: left 0.15s, background 0.15s; }
+  .component-toggle input:checked + .track { background: var(--orange); }
+  .component-toggle input:checked + .track::after { left: 1.05rem; background: #fbeee6; }
+  .hide, .hidden { display: none !important; }
+  .shots { display: flex; gap: 0.6rem; }
+  .shots canvas { flex: 1; min-width: 0; width: 50%; height: auto; border-radius: 0.25rem; }
+</style>
+</head>
+<body>
+<div class="page-title"><h1>WristWake</h1></div>
+<p id="loading" class="status" style="padding:0 0.75rem">…</p>
+
+<div id="content" class="hidden">
+  <div class="section">
+    <div class="component component-heading"><h4 data-t="ha_title"></h4></div>
+    <div class="component">
+      <p id="ha-status" class="status" style="padding-top:0.7rem"></p>
+    </div>
+    <div class="component component-input">
+      <label><span data-t="ha_url"></span>
+        <span class="input"><input id="ha-url" type="url" placeholder="https://xyz.ui.nabu.casa" autocomplete="off"></span>
+      </label>
+    </div>
+    <div class="component component-input">
+      <label><span data-t="ha_token"></span>
+        <span class="input"><input id="ha-token" type="password" autocomplete="off"></span>
+      </label>
+      <div class="description" data-t="ha_token_hint"></div>
+      <div class="buttons">
+        <button id="ha-connect" class="small primary" data-t="ha_connect"></button>
+        <button id="ha-disconnect" class="small hidden" data-t="ha_disconnect"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="component component-heading"><h4 data-t="watch_title"></h4></div>
+    <div class="component component-input">
+      <label><span data-t="watch_name"></span>
+        <span class="input"><input id="watch-name" type="text" maxlength="40"></span>
+      </label>
+      <div class="description" data-t="watch_name_hint"></div>
+    </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="left_handed"></span>
+        <input id="left-handed" type="checkbox"><span class="track"></span>
+      </label>
+      <div class="description" data-t="left_handed_hint"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="component component-heading"><h4 data-t="alarms_title"></h4></div>
+    <div class="component"><div class="description" style="padding-top:0.7rem" data-t="alarms_help"></div></div>
+    <div id="alarms"></div>
+  </div>
+
+  <div class="section" id="design-section">
+    <div class="component component-heading"><h4 data-t="design_title"></h4></div>
+    <div class="component component-select">
+      <label class="tap-highlight"><span data-t="design_label"></span>
+        <span class="value" id="theme-label"></span>
+        <select id="theme">
+          <option value="3">Cerulean Blue</option>
+          <option value="8">Berry</option>
+          <option value="9">Lavender</option>
+          <option value="10">Mint</option>
+          <option value="4">Cerulean Night</option>
+          <option value="5">Forest</option>
+          <option value="6">Night Light</option>
+          <option value="7">High Contrast</option>
+          <option value="0" data-t="light"></option>
+          <option value="1" data-t="dark"></option>
+          <option value="2">Custom</option>
+        </select>
+      </label>
+    </div>
+    <div id="custom" class="hidden"></div>
+    <div class="component" id="preview-wrap"><div id="preview" class="preview"></div>
+      <div id="shots" class="shots">
+        <canvas id="shot-list" width="200" height="228"></canvas>
+        <canvas id="shot-menu" width="200" height="228"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="component component-submit">
+    <button id="save" class="primary" data-t="save" disabled></button>
+    <p id="save-status" class="status"></p>
+    <p id="mode" class="footnote"></p>
+    <p id="version" class="footnote"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var TEXT = {
+    de: {
+      subtitle: 'Wecker-Einstellungen', design_label: 'Farbschema',
+      ha_title: 'Home Assistant', ha_url: 'Adresse von Home Assistant', ha_token: 'Langlebiges Zugriffstoken',
+      ha_token_hint: 'In HA unter Profil → Sicherheit erstellen. Das Token wird nur einmal zum Anmelden benutzt und danach verworfen, nirgends gespeichert.',
+      ha_connect: 'Verbinden', ha_reconnect: 'Neu verbinden', ha_disconnect: 'Trennen',
+      ha_off: 'Nicht verbunden.', ha_on: 'Verbunden mit ', ha_cloud: ' (über Nabu Casa)',
+      ha_deleted: 'Die Verbindung wurde in Home Assistant gelöscht. Bitte neu verbinden.',
+      ha_pending: ' Letzter Stand wartet noch auf Netz.',
+      ha_working: 'Verbinde … (kann bis zu 30 Sekunden dauern)',
+      err_auth: 'Token ungültig oder abgelaufen.', err_network: 'Home Assistant nicht erreichbar. Adresse prüfen.',
+      err_timeout: 'Zeitüberschreitung. Adresse prüfen.', err_missing: 'Bitte Adresse und Token eintragen.',
+      err_sensors: 'Gerät angelegt, aber nicht alle Sensoren. Bitte erneut verbinden.',
+      err_no_state: 'Noch keine Daten von der Uhr. Ist WristWake auf der Uhr geöffnet?',
+      err_watch: 'Uhr nicht erreichbar. Ist WristWake auf der Uhr geöffnet?',
+      watch_title: 'Uhr', watch_name: 'Name der Uhr', watch_name_hint: 'Wird in Home Assistant als Gerätename verwendet.',
+      left_handed: 'Linkshänder-Modus',
+      left_handed_hint: 'Einschalten, wenn die Uhr im Linkshänder-Modus läuft (Bildschirm gedreht, Knöpfe links). Die Tasten-Symbole beim Klingeln und bei Rückfragen erscheinen dann links. Die Uhr kann diese Systemeinstellung Apps noch nicht mitteilen.',
+      alarms_title: 'Wecker', no_alarms: 'Noch keine Wecker. Wecker legst du auf der Uhr mit „+ NEU“ an.',
+      name: 'Name',
+      alarms_help: 'Uhrzeit, Tage, Ton und Vibration stellst du auf der Uhr im Wecker-Menü ein.',
+      design_title: 'Design', light: 'Hell', dark: 'Dunkel',
+      c_bg: 'Hintergrund', c_fg: 'Schrift', c_hlbg: 'Auswahl-Hintergrund', c_hlfg: 'Auswahl-Schrift',
+      preview_normal: 'Wecker 07:00', preview_sel: 'Ausgewählt 06:30',
+      save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
+      off: 'aus', days_once: 'einmalig',
+      test: 'Testen', test_sent: 'Testalarm läuft auf der Uhr.',
+      mode_direct: 'Verbindung zur App: direkt',
+      mode_fallback: 'Verbindung zur App: Ersatzweg (die Seite schließt sich beim Speichern)'
+    },
+    en: {
+      subtitle: 'Alarm settings', design_label: 'Color scheme',
+      ha_title: 'Home Assistant', ha_url: 'Home Assistant address', ha_token: 'Long-lived access token',
+      ha_token_hint: 'Create it in HA under Profile → Security. The token is used once to connect and then discarded, never stored.',
+      ha_connect: 'Connect', ha_reconnect: 'Reconnect', ha_disconnect: 'Disconnect',
+      ha_off: 'Not connected.', ha_on: 'Connected to ', ha_cloud: ' (via Nabu Casa)',
+      ha_deleted: 'The connection was deleted in Home Assistant. Please reconnect.',
+      ha_pending: ' Latest state is waiting for a network.',
+      ha_working: 'Connecting … (may take up to 30 seconds)',
+      err_auth: 'Token invalid or expired.', err_network: 'Home Assistant not reachable. Check the address.',
+      err_timeout: 'Timed out. Check the address.', err_missing: 'Please enter address and token.',
+      err_sensors: 'Device created, but not all sensors. Please connect again.',
+      err_no_state: 'No data from the watch yet. Is WristWake open on the watch?',
+      err_watch: 'Watch not reachable. Is WristWake open on the watch?',
+      watch_title: 'Watch', watch_name: 'Watch name', watch_name_hint: 'Used as the device name in Home Assistant.',
+      left_handed: 'Left-handed mode',
+      left_handed_hint: 'Turn on if the watch runs in left-handed mode (screen rotated, buttons on the left). The button symbols when ringing and in confirmations then appear on the left. The watch cannot pass this system setting to apps yet.',
+      alarms_title: 'Alarms', no_alarms: 'No alarms yet. Create alarms on the watch with “+ NEW”.',
+      name: 'Name',
+      alarms_help: 'Set time, days, sound and vibration on the watch in the alarm menu.',
+      design_title: 'Design', light: 'Light', dark: 'Dark',
+      c_bg: 'Background', c_fg: 'Text', c_hlbg: 'Selection background', c_hlfg: 'Selection text',
+      preview_normal: 'Alarm 07:00', preview_sel: 'Selected 06:30',
+      save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
+      off: 'off', days_once: 'once',
+      test: 'Test', test_sent: 'Test alarm is ringing on the watch.',
+      mode_direct: 'Connection to the app: direct',
+      mode_fallback: 'Connection to the app: fallback (the page closes when saving)'
+    }
+  };
+  var lang = (navigator.language || 'en').slice(0, 2) === 'de' ? 'de' : 'en';
+  function t(key) { return TEXT[lang][key] || key; }
+
+  // Inserted by the phone part when opening (watch state), see index.js "showConfiguration"
+  var INITIAL = null;
+  /*__WW_INITIAL__*/
+  // Direct connection to the app available? The Pebble app may only provide it after loading,
+  // so it is checked on every action. Without it: fallback, hand over everything on close.
+  function hasBridge() {
+    return !!(window.Pebble && typeof window.Pebble.sendMessage === 'function');
+  }
+  var bridge = hasBridge();
+  var state = null, haInfo = null;
+  var colors = [0xFF, 0xC0, 0xC0, 0xFF];  // GColor8 (argb): white, black, black, white
+  var COLOR_KEYS = ['c_bg', 'c_fg', 'c_hlbg', 'c_hlfg'];
+
+  function $(id) { return document.getElementById(id); }
+
+  function applyTexts() {
+    document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.getAttribute('data-t')); });
+  }
+
+  // Fallback: close the page and hand everything over to the phone part
+  function closeWith(payload) {
+    location.href = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function call(message) {
+    bridge = hasBridge();
+    if (!bridge) return Promise.reject(new Error('no_bridge'));
+    return Pebble.sendMessage('pkjs', message).then(function (reply) {
+      if (reply && reply.error && !reply.ha && message.type !== 'connect') throw new Error(reply.error);
+      return reply;
+    });
+  }
+
+  // GColor8 (2 bits per channel) <-> CSS
+  function css(argb) {
+    var r = ((argb >> 4) & 3) * 85, g = ((argb >> 2) & 3) * 85, b = (argb & 3) * 85;
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function renderHa() {
+    var el = $('ha-status');
+    el.className = 'status';
+    if (haInfo && haInfo.deleted) {
+      el.textContent = t('ha_deleted'); el.className = 'status err';
+    } else if (haInfo && haInfo.connected) {
+      el.textContent = t('ha_on') + haInfo.url + (haInfo.cloud ? t('ha_cloud') : '') + (haInfo.pending ? t('ha_pending') : '');
+      el.className = 'status ok';
+      if (!$('ha-url').value) $('ha-url').value = haInfo.url;
+    } else {
+      el.textContent = t('ha_off');
+    }
+    var connected = haInfo && haInfo.connected;
+    $('ha-connect').textContent = connected ? t('ha_reconnect') : t('ha_connect');
+    $('ha-disconnect').classList.toggle('hidden', !connected);
+  }
+
+  function renderAlarms() {
+    var box = $('alarms');
+    box.innerHTML = '';
+    var used = state.a.filter(function (a) { return a.u; });
+    used.sort(function (x, y) { return (x.h * 60 + x.m) - (y.h * 60 + y.m); });
+    if (!used.length) {
+      box.innerHTML = '<div class="component"><div class="description">' + t('no_alarms') + '</div></div>';
+      return;
+    }
+    used.forEach(function (a) {
+      var row = document.createElement('div');
+      row.className = 'component alarm-head';
+      row.innerHTML =
+        '<div class="row"><span class="alarm-time"></span>' +
+        '<button class="small" data-slot="' + a.s + '" data-field="test">' + t('test') + '</button></div>' +
+        '<p class="status" data-slot="' + a.s + '" data-field="thint"></p>';
+      var time = row.querySelector('.alarm-time');
+      time.textContent = pad(a.h) + ':' + pad(a.m) + ' ';
+      if (!a.e) {
+        var off = document.createElement('small');
+        off.textContent = '(' + t('off') + ')';
+        time.appendChild(off);
+      }
+      box.appendChild(row);
+      var nameRow = document.createElement('div');
+      nameRow.className = 'component component-input';
+      nameRow.innerHTML = '<label><span>' + t('name') + '</span><span class="input">' +
+        '<input type="text" maxlength="24" data-slot="' + a.s + '" data-field="name"></span></label>';
+      nameRow.querySelector('input').value = a.n || '';
+      box.appendChild(nameRow);
+    });
+    box.querySelectorAll('[data-field=test]').forEach(function (button) {
+      button.addEventListener('click', function () { runTest(+button.getAttribute('data-slot')); });
+    });
+  }
+
+  // Layout of the 64 watch colors as a honeycomb, like the Clay color picker (false = gap)
+  var COLOR_LAYOUT = [
+    [0, 0, '55ff00', 'aaff55', 0, 'ffff55', 'ffffaa', 0, 0],
+    [0, 'aaffaa', '55ff55', '00ff00', 'aaff00', 'ffff00', 'ffaa55', 'ffaaaa', 0],
+    ['55ffaa', '00ff55', '00aa00', '55aa00', 'aaaa55', 'aaaa00', 'ffaa00', 'ff5500', 'ff5555'],
+    ['aaffff', '00ffaa', '00aa55', '55aa55', '005500', '555500', 'aa5500', 'ff0000', 'ff0055'],
+    [0, '55aaaa', '00aaaa', '005555', 'ffffff', '000000', 'aa5555', 'aa0000', 0],
+    ['55ffff', '00ffff', '00aaff', '0055aa', 'aaaaaa', '555555', '550000', 'aa0055', 'ff55aa'],
+    ['55aaff', '0055ff', '0000ff', '0000aa', '000055', '550055', 'aa00aa', 'ff00aa', 'ffaaff'],
+    [0, '5555aa', '5555ff', '5500ff', '5500aa', 'aa00ff', 'ff00ff', 'ff55ff', 0],
+    [0, 0, 0, 'aaaaff', 'aa55ff', 'aa55aa', 0, 0, 0]
+  ];
+  // How the colors look on the watch display (like Clay "sunlight")
+  var SUNLIGHT = {
+    '000000': '000000', '000055': '001e41', '0000aa': '004387', '0000ff': '0068ca',
+    '005500': '2b4a2c', '005555': '27514f', '0055aa': '16638d', '0055ff': '007dce',
+    '00aa00': '5e9860', '00aa55': '5c9b72', '00aaaa': '57a5a2', '00aaff': '4cb4db',
+    '00ff00': '8ee391', '00ff55': '8ee69e', '00ffaa': '8aebc0', '00ffff': '84f5f1',
+    '550000': '4a161b', '550055': '482748', '5500aa': '40488a', '5500ff': '2f6bcc',
+    '555500': '564e36', '555555': '545454', '5555aa': '4f6790', '5555ff': '4180d0',
+    '55aa00': '759a64', '55aa55': '759d76', '55aaaa': '71a6a4', '55aaff': '69b5dd',
+    '55ff00': '9ee594', '55ff55': '9de7a0', '55ffaa': '9becc2', '55ffff': '95f6f2',
+    'aa0000': '99353f', 'aa0055': '983e5a', 'aa00aa': '955694', 'aa00ff': '8f74d2',
+    'aa5500': '9d5b4d', 'aa5555': '9d6064', 'aa55aa': '9a7099', 'aa55ff': '9587d5',
+    'aaaa00': 'afa072', 'aaaa55': 'aea382', 'aaaaaa': 'ababab', 'ffffff': 'ffffff',
+    'aaaaff': 'a7bae2', 'aaff00': 'c9e89d', 'aaff55': 'c9eaa7', 'aaffaa': 'c7f0c8',
+    'aaffff': 'c3f9f7', 'ff0000': 'e35462', 'ff0055': 'e25874', 'ff00aa': 'e16aa3',
+    'ff00ff': 'de83dc', 'ff5500': 'e66e6b', 'ff5555': 'e6727c', 'ff55aa': 'e37fa7',
+    'ff55ff': 'e194df', 'ffaa00': 'f1aa86', 'ffaa55': 'f1ad93', 'ffaaaa': 'efb5b8',
+    'ffaaff': 'ecc3eb', 'ffff00': 'ffeeab', 'ffff55': 'fff1b5', 'ffffaa': 'fff6d3'
+  };
+  var LEVELS = { '00': 0, '55': 1, 'aa': 2, 'ff': 3 };
+
+  function hexToArgb(hex) {
+    return 0xC0 | (LEVELS[hex.slice(0, 2)] << 4) | (LEVELS[hex.slice(2, 4)] << 2) | LEVELS[hex.slice(4, 6)];
+  }
+  function argbToHex(argb) {
+    var names = ['00', '55', 'aa', 'ff'];
+    return names[(argb >> 4) & 3] + names[(argb >> 2) & 3] + names[argb & 3];
+  }
+  function displayColor(argb) {
+    return '#' + SUNLIGHT[argbToHex(argb)];
+  }
+
+  function openColorPicker(index) {
+    var wrap = document.createElement('div');
+    wrap.className = 'picker-wrap';
+    var picker = document.createElement('div');
+    picker.className = 'picker';
+    var grid = document.createElement('div');
+    grid.className = 'color-grid';
+    COLOR_LAYOUT.forEach(function (row) {
+      row.forEach(function (hex) {
+        var box = document.createElement('i');
+        if (hex) {
+          var argb = hexToArgb(hex);
+          box.className = 'sel' + (argb === colors[index] ? ' selected' : '');
+          box.style.background = '#' + SUNLIGHT[hex];
+          box.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            colors[index] = argb;
+            document.body.removeChild(wrap);
+            renderColors();
+          });
+        }
+        grid.appendChild(box);
+      });
+    });
+    picker.appendChild(grid);
+    wrap.appendChild(picker);
+    wrap.addEventListener('click', function () { document.body.removeChild(wrap); });
+    document.body.appendChild(wrap);
+  }
+
+  function renderColors() {
+    var box = $('custom');
+    box.innerHTML = '';
+    COLOR_KEYS.forEach(function (key, i) {
+      var row = document.createElement('div');
+      row.className = 'component component-color';
+      row.innerHTML = '<label class="tap-highlight"><span></span><span class="value"></span></label>';
+      row.querySelector('span').textContent = t(key);
+      row.querySelector('.value').style.background = displayColor(colors[i]);
+      row.querySelector('label').addEventListener('click', function () { openColorPicker(i); });
+      box.appendChild(row);
+    });
+    renderPreview();
+  }
+
+  function currentTheme() {
+    return +$('theme').value || 0;
+  }
+
+  function renderPreview() {
+    var theme = currentTheme();
+    var c = theme === 1 ? [0xC0, 0xFF, 0xFF, 0xC0]
+          : theme === 2 ? colors
+          : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
+    var select = $('theme');
+    $('theme-label').textContent = select.options[select.selectedIndex].textContent;
+    $('custom').classList.toggle('hidden', theme !== 2);
+    var p = $('preview');
+    p.innerHTML = '<div></div><div></div>';
+    p.children[0].textContent = t('preview_normal');
+    p.children[0].style.background = displayColor(c[0]); p.children[0].style.color = displayColor(c[1]);
+    p.children[1].textContent = t('preview_sel');
+    p.children[1].style.background = displayColor(c[2]); p.children[1].style.color = displayColor(c[3]);
+    renderShots(roleColors(theme, c));
+  }
+
+  // Preview images (main screen and alarm menu) from tools/make_previews.py:
+  // every pixel is mapped to a color role and colored here with the selected theme.
+  /*PREVIEW_DATA_START*/
+  var PREVIEW = {"w":200,"h":228,"sym":[[8,8,4],[9,9,4],[0,0,4],[4,4,4],[5,5,4],[4,5,3],[3,12,1],[7,7,4],[2,2,4],[0,11,3],[3,3,4],[0,3,2],[11,11,4],[12,12,4],[1,1,4]],"img":{"de_list":"eNrtm4t2qyAQAGuibW3j///ubY0PFnYRW5ss3pkTEyQk7siCmNO+vAAAQF00jXwNS1M5bSLLbjzmLeMhm1ThkfRWdR5f2/3xXZyem8ijaSI3L0bNxFxcwmuCoGWTRXnZ9eYR9JCoEU2Eh5sUUz3m4BKPNddE97j1iJ7XeBuvHkFuWHkVNYnyytuMJUNtgmlLNPE6zlWPlyYaIGHXyLnY3ZUE4GxcwBVXAAAAAHe0CZstCj+HBx5OPbr0KF2FHq1Kpm1xfeSx9SVHd0amS/x66AKdcSS3HmZC7Yn3+R6dPS7UzPLq8RprvAZvvf5kvkraPMQjF1ZBjHj8dV6F8VSUV11ufHT1eFxz89XWvLQZz1OvgzkNxx6ddT3v6vL4xTrRmcfudbtXjwOWY5k7jaruB/HAAw8AAAAAR4iVUbxKGvfrWDo91mM8Wjt97XRorS68xXz7Ii7t9Mj80HKMR2vUBR5vb3P4a8n2+HpeHtPXTAqHrslFzEt/p3XByfuOfPaYS+rJDnp0Ph/r6/EebZt6JHVXkVbXuJTzuAbfE25H59Vej7LxYXms/XGwhzjiXEjq5EELuiQ8Ez49isZHKyKW+XT9a4/1FCZ1wqNgvlKyUumPI8d5cFQRcnL9CLNqc3ykvZnMu7Vc0AEAAKBO+A8xAAAA8Md7QlmDzc/hcT6P/iOhr89DsbBN/Hp8mJgeys5SNBpYnzuMTz3i79rPijx6K4OMN7x63KPVgu7VfnLq0Y/ZM+ZWkkafWoc49Rhj7fUZqtdGSNl89XCPMXesCUpLLDz+Pq8Mj5ryaozVGB/2OPfncZ931fmqN67oVszP9bhfOXp1tjIXiw499q5L3HrsXCf69di3bnfscch9lFyX1HtfiwceeAAAAAC4YV1O2e/t+Z5neszbIzzm3wnn+2+rLihd5OLVp8eHURd4vEdL722PsP39vdJ9+flSj/um1l3WX0XW02yd8PA+ItD97WvJjzmRR1J3EWl1iUsbHsdsB3sUjQ/LQ+bcfL6tfVmf95gewiOtu4hf2wq6xL9H2fhQmlm5ktsvyanEY02mpE54FMxX0iMet6X9sWecL89RyMn1Q6TM5vgIz2Q674r5NLNfPO8CAAAARNwAAAAAAOD/ZhiG5WWYkLV4PNhjOKGH0kv1eAxVesjgTuUxnM4jHC4VegyVeQxh2IvVCT0qGR+6x606D3V8nMfjhocvD2WdKIdRpev2W20alsetMg0AAAAAqBf+4gkAAAAAAAAAQPIP7lceGw==","de_menu":"eNrtnOuW6iAMhZW2/uT9H3dmqS0hFwpOLaGz9zoq5WDN1xJAEud2gyAIgjrp/ivtKK9fq+iBPJNefxpG+uh0lNe753iaRu+BeKrnKNd/m4N+djrSru3v0bPi9fr8d6d8b/R7DxLapeo57i+It8nptSvHndm82VS4H7RZXujnH+Rq5n1kMI7cfzOqzCbN3tSVunMo9t5H5yj6uWZvOrxdg8OPfyhToDbvrc7ujOOWj1eFdYnk0OYPdV126jqRW8HtUe7HXRurb504IAi6qALkShMEQRAEQRAEQRD0F82/an+LXdt+Ok3LLLQMyDGrGo1jmQ0te+S+OHSApXjmxPF6SQczv195y7Va1JJjpflHGMXrV+Jg1pDS2oaUSW1+qDT/qFcRYxeb4/XIONIJZKlUJNbrbWr04BgP8l+PUldnd6LwlIxVa4Wb8OYfdSt21ds4NO+YLON3OaY+HBoIOSEzbJ4P5XiUONr6lQZiceT+was/4FhK/rEUZwLl4wSIwcFd5e8cU2m82n2L2ltoSefY8Q+tG34OYp+hwMFLp/m5NoO85/OlmmOuHHd5jzqUo3mdmA2qc2n2szq8qJ2Kzb+0bpcc1esSyjEpHHrz732H4h5QvU60xqtJXyd+lQOCIAiCIAiCIKdCRiAEQRAEQRAEQX0VY3w+hjW+jsM34gU5DmsJjmM4YtyO8lLcWq7Veq0b/yDWZaWY3GctK7U+OGLcrJOlmqIfjqyfkB6zWVysdckRdbhS0R9HAmHTy2gcIRuO1PsV4wgcIQoDx+SQDiw6k/YufxyVzu2awxphfXPYk5vlCT79Qy42zHUJHZdlrROOmnVi4E29cEAQBEEQBEEQBEH99it6fiv8JIwh9xqLHKfggaO1uT+ORvv6cGTbbfq2EN2LoyeSl4SVs8pjQ4v8A8k2Ycw52N4b41Ajhq8XI6R4bGhRucTUSnuHNOeI7SHFY0OLnEOzUt+b5iHrYMQRrd3hY0OLsiOzCKHY2K3g2C0ev6Vqc9Cev8tBHLkSqQeH9ADJYcQXghVqOJsjy8SwOSpCP1057Aj0J/7Br8ypHIalf/Hz0zns8KHCoftHPIvD9tBipDDY86A9sX6Ng608bA4RE5QcunMbIcXDQ3JRi/UpHDwmqEyWIoJrrxMDQosQBEGQkw1NOT0bta4x3k9bwa51zbE+R3Jo1A7EEa7DQZxkTI5tWU2ABuTIPXqFGrRfRTaUXYEjgAPzx7/nECsQcRAGWWCxFWHapRlpnQhBEARBUOMCwGHQoj3Jo3fG2P/laDarb3ezPj0OyxGVnz/KpXvnzLd9jqj9HFVP4OuY+bbLUfcHMbpnvtVwhP0fZnfPfPsKRzg/861qlCnmgtW1+nZGTO14JX3VcvQ+GWNV41X+Q3l1ouyd+dbmH+bc1j3zrdHPLR/tnvlWx8G8wv5zIN0y31rmwVA7D4YOmW9VHNzZ9YT8vplv9eMV943dTF2nmW+Nv7hx/SU8XmGr/SIYAYEPCLrULid90YetC3Bc5X6MwxFiehZ9KKU3eO9dhCNKcyNtNAyH7EkxlHqdL44NQuN4fwUJo3MM4+4KB/1iOhLH+hj9foDDGQeZ6uIFOIrzOQRBEASFHzLB810=","en_list":"eNrtm4t2qjAQAAVFS5X//91bH4HdvIgKuuHOHJEIse6QTUhsu9sBAEBdNI3ey9KjHFbRZTMebst46CpVeAStVZ3H33Z/XIuP58bzaBrPzYpR88AVx/AaEbSuMiqPL615iBZSR1QV5WEmxaIeLrjAY8o11TxmPbznKd7GqofIjVReeVW8vLI2YulQGzFsqSpW+3nUY9d4HUQ2jR6Lzd1JALZGC6bYAwAAAJjjEDBbo/B9eOBh1KMLP6Wr0OMQJVO3+LjnMfdDlm6MTJPY9YgLdIlPMuuRTKhn4v2+R5fuF9HMsupx9DWO4tTxlfEqqPMRj1xYBTHisXZeyXgqyqsu1z+6ejz2ufFqblyajeer98GchmGPLnU/7+ryeGOeaMzj6Xm7VY8FpmOZlUZV60E88MADAAAAwAzTdCp1ph4Pt33C43D/sMM409QhTDNOMfU8/eGXKvQ4nVz4UynvcXAf8HjsV/lSavoNhotYXsow0a+ROw9XSq8/1AU6TCorLXdkrLFje5VWe7804+FdGBseRf0j57HOV2viAuU9xLsKmsSAh+qKr/YPr4utn1cveBSMV34LfMBDJlSJR1n/kD9E5Nd+pXEXAAAAwIP/EAMAAAB7/ASUVZh9Hx7b8+h/A/r6PCIWaRO7Hr9Jkh6RF2MxUSH1vsU4xyO+Hj1X5NGnMihxwqrHPdpY0H20nYx69LfsueVWkEbnWIMY9bjF2sdHqD7WQ8rGq4973HInNUDFEguP9fMq4VFTXt1iTfSPdD+353Efd6PjVZ+4o6di/q7H/c7RR0er5GTRoMez8xKzHk/OE+16PDdvN+yxyDpKz0vqXdfigQceAAAAAGaYplPpc+1Tp77n4bZPeLjvCcf193UvN7f+FgtxPXmt1uPHm3rPe8j66px76U4v4nGPXHu452kvL3Pqgst1hNCd9q1+qfdvfZkjY40da1VatX5pxiPYIoeyV2UNj6L+kW8P7/AiHo/HvIcOcq5JDHiI3vF6//CqeXv5zu95FIxX2mOmn7ftAv1cJVSJR1n/kJd3dtxt9QAMAAAA8D4XAAAAAAD4fxmGYdwND8ajwR6PD3gMG/TQzTTIs/Y9hio9dFCb8hg25zHIni23OjyGyjwGGbaMd2seqtVq87hEPGQft3n3CPrHdjwueNjy8OeJdc0R8QAAAAAAWBT+4gkAAAAAAAAAQPMP8fsamQ==","en_menu":"eNrtnO16syAMhivV/sz5H+77UasJSRA7xeCe59qq0G7LXRKImPXxgCAIgi7S8FdWS/b/a6/f6lfEwFjtWFuyPzzH8DZtyFuyvwcObsjakv2aYxm1+esxXAvDXWoHx8fp3kdnmBpzDJnNs4HKYYZhWM3Pca92rcy2h6Sq5hgCcEjfFlQ7OELFOUfrmaMU56o/mF8dwnH1tCsWvfI6WOYIMmE9+Lpg5yXC3EFNBxFmLDHTenmifNv19DxEyBYhCLqfEhRKTwiCIAiCIAiCIOhbjbPmc/9Vxum5mkalaZtjjMYxmqp4eSiOaXQ0lS3csK45hw0wbb7TfDzW8ZORI5yvPMrHY2y9i6ah3NbFeOF8W+56tFcxe6c6DhEu9qmcHU7QK8d4sade1Rzaj0b/qSZuJZ6rHw/+lIHUBcczc8crOF4ljteX85XDcWZ8TKX4mGo5nqMdNO04nqX5qnr9EGFdio+W6+AGhs3xrOM4kWby1vOplkM/tJ93j8gTI6yDh+TtvPlOR5rnJcdcR41s3nKdKRgGBEEQBEEQBEFRhYpACIIgCIIgCIKgr0WzdPdmT0gOugsHdc9hWdk5xzIwRpvyvrgcq7VGW52F5WChYrQp74vMIU750KiBAwc4fh4fcgYjcLTzq2S13QUT8QGOrTxxKz6Cr4NkZFE6B4mflzC73DxxPo+bJ0IQBEEQBEEQBEG/VWqr7afX+ddc9lK+udAnB+03wHxZAI7lUGeAu11y6TaK4sj3q5xeY/+HvcbakDx3wyg31rwhaG3C6f04xfF+QZsNPP6b3S3S8qnHwXX6hmrOYW5Zk7ORncoc3s824EhFi/dxpK0faMDB4rJzjmw5cMoBdnE0jI9UvpujpqtoHLVBUVr0avyq4XpePiX//lqE+PDuD9rxETPOLdvs3rRrHWwaHzpvX/+q72JUlZd4c12b66jCfKWLterjPNKNxeA1DV9d9d2C4ya7EticgaBOA1dEMPVWFTMvuOzE7w3N8Xkk1nR6O+JI9+FgQdInx5K9M6AOOWREf6A69SvKprI7cCRwYP349RwqA1GN1EmClWWEcjME138QBEEQBDVOTA6rh7sY48h6uEsxDquHo8s4lsNP6uGuvuV2VD3c5udupEJF4Akc39bDFT93g99BP5cjj9Xd9XCl/8dn70X4ejinviN32PD1cFUcdHqc5xwsWPdzyKt9ahHmh9XDmZ9GkVQ9B7Xm2FsPp0tUlh5+m+vs+erH9XBefCSy/hf/cg63Hq6OI349nJUXSI7T591D6uH8EvA8olrl7d/VwxFlc1nKOVIX9XD5ECTNkfquhwv6aXL7vCNo2dnuWA1722GnYbh7AkEh4pYfqqZP6pjDbXTMEdOvEq2PS62S+njk5UAUdDxWjqWY4X9Nmc1BYf2KcSQ2GDYHxY2PFWLh0MZ+LpBS7xz80BsHv1LtgePz3ft4gCMYB5tv6QYcova4Nw4IgiCogf4AVebrnA=="}};
+  /*PREVIEW_DATA_END*/
+
+  // Color roles like theme.c on the watch (same order as ROLES in tools/make_previews.py)
+  var C_BLACK = 0xC0, C_WHITE = 0xFF, C_DGRAY = 0xD5, C_LGRAY = 0xEA;
+  function mix3(a, b, wa) {   // like prv_mix in theme.c: share of a in thirds
+    var out = 0xC0;
+    [4, 2, 0].forEach(function (s) {
+      out |= Math.floor((((a >> s) & 3) * wa + ((b >> s) & 3) * (3 - wa) + 1) / 3) << s;
+    });
+    return out;
+  }
+  function roleColors(theme, c) {
+    if (theme === 0) {
+      return [C_WHITE, C_BLACK, C_DGRAY, C_LGRAY, C_BLACK, C_WHITE, C_LGRAY, C_DGRAY,
+              C_BLACK, C_WHITE, C_LGRAY, C_LGRAY, C_BLACK];
+    }
+    if (theme === 1) {
+      return [C_BLACK, C_WHITE, C_LGRAY, C_DGRAY, C_WHITE, C_BLACK, C_DGRAY, C_LGRAY,
+              C_WHITE, C_BLACK, C_DGRAY, C_DGRAY, C_WHITE];
+    }
+    var bg = c[0], fg = c[1], hb = c[2], hf = c[3], head = hb;   // header in the selection colors
+    return [bg, fg, mix3(fg, bg, 2), mix3(fg, bg, 1), hb, hf, mix3(hf, hb, 2), mix3(hf, hb, 1),
+            head, hf, mix3(hf, head, 2),
+            c.length > 4 ? c[4] : mix3(fg, bg, 1), c.length > 4 ? c[5] : fg];   // "+ NEW" bar
+  }
+
+  // Presets like theme.c (CERULEAN_PRESET and PRESETS), as GColor8:
+  // background, text, selection, selection text, bar, bar text
+  var PRESETS = {
+    3: [0xFF, 0xC0, 0xCB, 0xC0, 0xEF, 0xC0],   // Cerulean Blue (#00AAFF, closest watch color to #18BCF2)
+    4: [0xC0, 0xFF, 0xCB, 0xC0, 0xC6, 0xFF],   // Cerulean Night
+    5: [0xC0, 0xFF, 0xCD, 0xC0, 0xC4, 0xFF],   // Forest
+    6: [0xC0, 0xF8, 0xF4, 0xC0, 0xE4, 0xC0],   // Night Light
+    7: [0xC0, 0xFF, 0xFC, 0xC0, 0xD5, 0xFF],   // High Contrast
+    8: [0xFF, 0xC0, 0xF1, 0xFF, 0xFA, 0xC0],   // Berry
+    9: [0xFF, 0xC0, 0xE7, 0xFF, 0xEB, 0xC0],   // Lavender
+    10: [0xFF, 0xC0, 0xDE, 0xC0, 0xEE, 0xC0]   // Mint
+  };
+
+  var shotPixels = {}, shotRun = 0;
+  function loadShot(key) {
+    if (shotPixels[key]) return Promise.resolve(shotPixels[key]);
+    var bin = atob(PREVIEW.img[key]), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+    return new Response(stream).arrayBuffer().then(function (buf) {
+      return (shotPixels[key] = new Uint8Array(buf));
+    });
+  }
+  function renderShots(roles) {
+    if (!PREVIEW || typeof DecompressionStream === 'undefined') { $('shots').classList.add('hidden'); return; }
+    var run = ++shotRun;
+    var table = PREVIEW.sym.map(function (s) {
+      var argb = 0xC0;
+      if (s[0] < 0) {
+        argb = s[1];
+      } else {
+        var a = roles[s[0]], b = roles[s[1]], w = s[2];
+        [4, 2, 0].forEach(function (sh) {
+          argb |= Math.round((((a >> sh) & 3) * w + ((b >> sh) & 3) * (4 - w)) / 4) << sh;
+        });
+      }
+      var hex = SUNLIGHT[argbToHex(argb)];
+      return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+    });
+    var l = PREVIEW.img[lang + '_list'] ? lang : 'en';
+    ['list', 'menu'].forEach(function (kind) {
+      loadShot(l + '_' + kind).then(function (px) {
+        if (run !== shotRun) return;
+        var ctx = $('shot-' + kind).getContext('2d');
+        var img = ctx.createImageData(PREVIEW.w, PREVIEW.h);
+        for (var i = 0; i < px.length; i++) {
+          var col = table[px[i]];
+          img.data[i * 4] = col[0]; img.data[i * 4 + 1] = col[1]; img.data[i * 4 + 2] = col[2];
+          img.data[i * 4 + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+      }).catch(function () { $('shots').classList.add('hidden'); });
+    });
+  }
+
+  function validate() {
+    return true;
+  }
+
+  function render() {
+    $('watch-name').value = state.wn || '';
+    $('left-handed').checked = !!state.lh;
+    $('version').textContent = state.v ? 'WristWake ' + state.v : '';
+    if (state.tc && state.tc.length === 4) colors = state.tc.slice();
+    $('theme').value = String(state.th === undefined ? 3 : state.th);
+    renderHa();
+    renderAlarms();
+    renderColors();
+    validate();
+    $('loading').classList.add('hidden');
+    $('content').classList.remove('hidden');
+    $('save').disabled = false;
+  }
+
+  function field(slot, name) {
+    return document.querySelector('[data-field=' + name + '][data-slot="' + slot + '"]');
+  }
+
+  function collect() {
+    var names = [];
+    for (var slot = 1; slot <= 8; slot++) {
+      var a = state.a[slot - 1];
+      var n = field(slot, 'name');
+      names.push(n ? n.value.replace(/[\x1f|]/g, ' ') : (a && a.n) || '');
+    }
+    return {
+      theme: currentTheme(), colors: colors.slice(), names: names,
+      watch_name: $('watch-name').value.trim() || 'Pebble',
+      left_handed: $('left-handed').checked
+    };
+  }
+
+  // Test alarm: rings on the watch with the sound and vibration pattern of this alarm
+  function runTest(slot) {
+    var hint = field(slot, 'thint');
+    var test = { slot: slot };
+    if (!hasBridge()) return closeWith({ test: test });
+    setStatus(hint, '…');
+    call({ type: 'test', test: test }).then(function () {
+      setStatus(hint, t('test_sent'), 'ok');
+    }).catch(function (e) {
+      setStatus(hint, t('err_' + e.message) !== 'err_' + e.message ? t('err_' + e.message) : e.message, 'err');
+    });
+  }
+
+  function setStatus(el, text, kind) {
+    el.textContent = text;
+    el.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  // Saving stays on the page: the button briefly turns green with a check mark
+  var savedTimer = null;
+  $('save').addEventListener('click', function () {
+    if (!validate()) return setStatus($('save-status'), t('fix_errors'), 'err');
+    bridge = hasBridge();
+    if (!bridge) return closeWith({ settings: collect() });
+    var button = $('save');
+    button.disabled = true;
+    setStatus($('save-status'), '');
+    call({ type: 'save', settings: collect() }).then(function () {
+      button.classList.add('saved');
+      button.textContent = '✓ ' + t('save');
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(function () {
+        button.classList.remove('saved');
+        button.textContent = t('save');
+      }, 1500);
+    }).catch(function (e) {
+      setStatus($('save-status'), t('err_' + e.message) !== 'err_' + e.message ? t('err_' + e.message) : e.message, 'err');
+    }).then(function () { button.disabled = false; });
+  });
+
+  $('ha-connect').addEventListener('click', function () {
+    var url = $('ha-url').value.trim(), tokenInput = $('ha-token');
+    if (!url || !tokenInput.value.trim()) return setStatus($('ha-status'), t('err_missing'), 'err');
+    if (!hasBridge()) {
+      // the watch reports the result as a notification
+      if (!validate()) return setStatus($('save-status'), t('fix_errors'), 'err');
+      var token = tokenInput.value.trim();
+      tokenInput.value = '';
+      return closeWith({ settings: collect(),
+                         connect: { url: url, token: token, name: $('watch-name').value.trim() } });
+    }
+    $('ha-connect').disabled = true;
+    setStatus($('ha-status'), t('ha_working'));
+    var message = { type: 'connect', url: url, token: tokenInput.value.trim(), name: $('watch-name').value.trim() };
+    tokenInput.value = '';  // remove the token from the form right away
+    call(message).then(function (reply) {
+      haInfo = reply.ha || haInfo;
+      renderHa();
+      if (reply.error) setStatus($('ha-status'), t('err_' + reply.error) !== 'err_' + reply.error ? t('err_' + reply.error) : reply.error, 'err');
+    }).catch(function (e) {
+      setStatus($('ha-status'), e.message, 'err');
+    }).then(function () { $('ha-connect').disabled = false; message.token = null; });
+  });
+
+  $('ha-disconnect').addEventListener('click', function () {
+    if (!hasBridge()) return closeWith({ disconnect: true });
+    call({ type: 'disconnect' }).then(function (reply) { haInfo = reply.ha; renderHa(); });
+  });
+
+  $('theme').addEventListener('change', function () { renderColors(); });
+
+  function start(data) {
+    if (!data || !data.state) return false;
+    state = data.state; haInfo = data.ha;
+    if (state.lang) { lang = state.lang; applyTexts(); }
+    render();
+    return true;
+  }
+
+  applyTexts();
+  $('loading').textContent = '…';
+
+  // Show the inserted state right away (if any)
+  var started = start(INITIAL);
+
+  function attachBridge() {
+    // New state from the watch while the page is open
+    Pebble.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'state' && !state) {
+        start(e.data);
+      } else if (e.data && e.data.ha) {
+        haInfo = e.data.ha; renderHa();
+      }
+    });
+    Pebble.addEventListener('ready', function (e) {
+      if (e.target !== 'pkjs' || state) return;
+      call({ type: 'get' }).then(function (reply) {
+        if (!start(reply)) setStatus($('loading'), t('err_no_state'), 'err');
+      }).catch(function (e) { setStatus($('loading'), e.message, 'err'); });
+    });
+  }
+
+  // The connection may appear after loading: wait up to 3 seconds
+  var waited = 0;
+  (function waitForBridge() {
+    if (hasBridge()) {
+      bridge = true;
+      $('mode').textContent = t('mode_direct');
+      attachBridge();
+      return;
+    }
+    if (waited >= 3000) {
+      $('mode').textContent = t('mode_fallback');
+      if (!started) setStatus($('loading'), t('err_no_state'), 'err');
+      return;
+    }
+    waited += 100;
+    setTimeout(waitForBridge, 100);
+  })();
+})();
+</script>
+</body>
+</html>

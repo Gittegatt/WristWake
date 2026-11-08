@@ -1,0 +1,51 @@
+{
+  "name": "wristwake",
+  "author": "Chemon Leesecake",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "WristWake",
+    "uuid": "5ce802ca-28a3-4816-8323-5301133489b1",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "usesPermissions": [
+      "Internet",
+      "LocalNetwork",
+      "WatchMicrophone"
+    ],
+    "configPage": "src/config/index.html",
+    "capabilities": [
+      "configurable"
+    ],
+    "messageKeys": [
+      "STATE",
+      "REQUEST_STATE",
+      "THEME",
+      "THEME_COLORS",
+      "NAMES",
+      "WATCH_NAME",
+      "TEST_SLOT",
+      "LEFT_HANDED"
+    ],
+    "resources": {
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "MENU_ICON",
+          "file": "images/menu_icon.png",
+          "menuIcon": true
+        }
+      ]
+    }
+  }
+}
