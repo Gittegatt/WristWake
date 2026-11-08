@@ -14,8 +14,9 @@
 const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT] = {5, 10, 15, 30, 60};
 
 static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
-  "off", "reveille", "beep", "chime", "rising", "korobeiniki", "westminster", "field_agent",
-  "maple_leaf", "rondo", "classic_ring", "digital", "sunrise", "siren", "chirp", "pulse"
+  "off", "reveille", "beep", "chime", "rising_beep", "korobeiniki", "westminster", "field_agent",
+  "maple_leaf", "rondo", "classic_ring", "digital", "rising_sunrise", "siren", "chirp", "pulse",
+  "rising_daybreak", "rising_breeze", "rising_bloom"
 };
 
 static const char *const VIBE_KEYS[VIBE_PATTERN_COUNT] = {

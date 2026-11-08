@@ -64,7 +64,7 @@ const char *ui_sound_name(AlarmSound sound) {
     case ALARM_SOUND_REVEILLE: return "Reveille";
     case ALARM_SOUND_BEEP:     return "Beep";
     case ALARM_SOUND_CHIME:    return "Chime";
-    case ALARM_SOUND_RISING:   return "Rising";
+    case ALARM_SOUND_RISING:   return "Rising Beep";
     case ALARM_SOUND_KOROBEINIKI: return "Korobeiniki";
     case ALARM_SOUND_WESTMINSTER: return "Westminster";
     case ALARM_SOUND_FIELD_AGENT: return "Field Agent";
@@ -72,10 +72,13 @@ const char *ui_sound_name(AlarmSound sound) {
     case ALARM_SOUND_RONDO:       return "Rondo";
     case ALARM_SOUND_CLASSIC_RING: return "Classic Ring";
     case ALARM_SOUND_DIGITAL:     return "Digital";
-    case ALARM_SOUND_SUNRISE:     return "Sunrise";
+    case ALARM_SOUND_SUNRISE:     return "Rising Sunrise";
     case ALARM_SOUND_SIREN:       return "Siren";
     case ALARM_SOUND_CHIRP:       return "Chirp";
     case ALARM_SOUND_PULSE:       return "Pulse";
+    case ALARM_SOUND_DAYBREAK:    return "Rising Daybreak";
+    case ALARM_SOUND_BREEZE:      return "Rising Breeze";
+    case ALARM_SOUND_BLOOM:       return "Rising Bloom";
     default:                   return TR("Off", "Aus");
   }
 }

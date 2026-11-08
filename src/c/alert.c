@@ -120,7 +120,7 @@ static const SpeakerNote MELODY_CHIME[] = {
   NOTE(88, 500, SIN), NOTE(84, 900, SIN), REST(1200),
 };
 
-// Rising: like a beep, gets louder with every repetition
+// Rising Beep: like a beep, gets louder with every repetition
 static const SpeakerNote MELODY_RISING[] = {
   NOTE(84, 200, SQR), REST(150), NOTE(84, 200, SQR), REST(700),
 };
@@ -208,10 +208,32 @@ static const SpeakerNote MELODY_DIGITAL[] = {
   NOTE(95, 70, SQR), REST(60), NOTE(95, 70, SQR), REST(60), REST(500),
 };
 
-// Sunrise: gentle rising major arpeggio, gets louder with every repetition
+// Rising Sunrise: gentle rising major arpeggio, gets louder with every repetition
 static const SpeakerNote MELODY_SUNRISE[] = {
   NOTE(72, 220, SIN), NOTE(76, 220, SIN), NOTE(79, 220, SIN), NOTE(84, 220, SIN),
   NOTE(88, 600, SIN), REST(900),
+};
+
+// Gentle melodies like Rising Sunrise (own designs), louder with every repetition
+// Rising Daybreak: pentatonic run upwards, held top note, soft echo back down
+static const SpeakerNote MELODY_DAYBREAK[] = {
+  NOTE(74, 180, SIN), NOTE(76, 180, SIN), NOTE(79, 180, SIN), NOTE(81, 180, SIN), NOTE(83, 180, SIN),
+  NOTE(86, 700, SIN), REST(120), NOTE(83, 300, SIN), NOTE(81, 500, SIN), REST(1000),
+};
+
+// Rising Breeze: wave up and down twice, like a soft gust of wind
+static const SpeakerNote MELODY_BREEZE[] = {
+  NOTE(69, 200, TRI), NOTE(72, 200, TRI), NOTE(76, 200, TRI), NOTE(79, 300, TRI),
+  NOTE(76, 200, TRI), NOTE(72, 200, TRI),
+  NOTE(67, 200, TRI), NOTE(71, 200, TRI), NOTE(74, 200, TRI), NOTE(78, 300, TRI),
+  NOTE(74, 200, TRI), NOTE(71, 200, TRI),
+  NOTE(69, 700, TRI), REST(1000),
+};
+
+// Rising Bloom: small waltz-like phrase in 3/4 that opens up and closes again
+static const SpeakerNote MELODY_BLOOM[] = {
+  NOTE(65, 300, SIN), NOTE(69, 300, SIN), NOTE(72, 300, SIN), NOTE(77, 600, SIN), NOTE(76, 300, SIN),
+  NOTE(74, 300, SIN), NOTE(72, 300, SIN), NOTE(69, 300, SIN), NOTE(72, 900, SIN), REST(900),
 };
 
 // Siren: two-tone "hi-lo"
@@ -234,18 +256,24 @@ static const SpeakerNote MELODY_PULSE[] = {
 static AlarmSound s_sound;
 // Speaker volume in percent (the watch speaker is loud; 80 % and 40 % were too loud on the real watch)
 #define VOLUME_NORMAL 25
-#define VOLUME_RISE_START 10   // Rising and Sunrise start quiet ...
+#define VOLUME_RISE_START 10   // the "Rising ..." sounds start quiet ...
 #define VOLUME_RISE_STEP 3     // ... and get louder with every repetition ...
 #define VOLUME_RISE_MAX 40     // ... up to this level
 
 static uint8_t s_volume;
+
+// The "Rising ..." sounds get louder with every repetition
+static bool prv_is_rising(AlarmSound sound) {
+  return sound == ALARM_SOUND_RISING || sound == ALARM_SOUND_SUNRISE ||
+         sound == ALARM_SOUND_DAYBREAK || sound == ALARM_SOUND_BREEZE || sound == ALARM_SOUND_BLOOM;
+}
 static bool s_sound_on;
 
 static void prv_play_once(void);
 
 static void prv_sound_finished(SpeakerFinishReason reason, void *ctx) {
   if (!s_sound_on || reason != SpeakerFinishReasonDone) return;
-  if ((s_sound == ALARM_SOUND_RISING || s_sound == ALARM_SOUND_SUNRISE) && s_volume < VOLUME_RISE_MAX) {
+  if (prv_is_rising(s_sound) && s_volume < VOLUME_RISE_MAX) {
     s_volume = s_volume + VOLUME_RISE_STEP > VOLUME_RISE_MAX ? VOLUME_RISE_MAX : s_volume + VOLUME_RISE_STEP;
   }
   prv_play_once();
@@ -281,6 +309,12 @@ static void prv_play_once(void) {
       notes = MELODY_CHIRP; count = ARRAY_LENGTH(MELODY_CHIRP); break;
     case ALARM_SOUND_PULSE:
       notes = MELODY_PULSE; count = ARRAY_LENGTH(MELODY_PULSE); break;
+    case ALARM_SOUND_DAYBREAK:
+      notes = MELODY_DAYBREAK; count = ARRAY_LENGTH(MELODY_DAYBREAK); break;
+    case ALARM_SOUND_BREEZE:
+      notes = MELODY_BREEZE; count = ARRAY_LENGTH(MELODY_BREEZE); break;
+    case ALARM_SOUND_BLOOM:
+      notes = MELODY_BLOOM; count = ARRAY_LENGTH(MELODY_BLOOM); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {
@@ -304,8 +338,7 @@ void alert_start(const AlertParams *p) {
       APP_LOG(APP_LOG_LEVEL_INFO, "Speaker muted, vibration only");
     } else {
       s_sound = sound;
-      s_volume = (sound == ALARM_SOUND_RISING || sound == ALARM_SOUND_SUNRISE) ? VOLUME_RISE_START
-                                                                           : VOLUME_NORMAL;
+      s_volume = prv_is_rising(sound) ? VOLUME_RISE_START : VOLUME_NORMAL;
       s_sound_on = true;
       speaker_set_finish_callback(prv_sound_finished, NULL);
       prv_play_once();
