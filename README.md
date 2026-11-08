@@ -20,7 +20,7 @@ Features:
 - snooze off: only holding the bottom button stops the alarm
 - wake-up challenge: repeat a random button sequence (Follow) or guess it (Guess) before the alarm stops
 - 10 color presets or your own colors, left-handed mode
-- English and German, following the watch language
+- in English and German: German if your watch is set to German, English otherwise
 
 In Home Assistant, your watch appears as its own device. It reports whether an alarm is ringing, snoozed or dismissed, and shows all alarms with their settings. This lets you, for example, turn on the lights or start the coffee machine when your alarm rings.
 
