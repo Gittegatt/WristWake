@@ -1,7 +1,7 @@
 {
   "name": "wristwake",
   "author": "Gittegatt",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "keywords": [
     "pebble-app"
   ],
@@ -35,7 +35,6 @@
       "NAMES",
       "WATCH_NAME",
       "TEST_SLOT",
-      "TEST_VOLUME",
       "LEFT_HANDED"
     ],
     "resources": {

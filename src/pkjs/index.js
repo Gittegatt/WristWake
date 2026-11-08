@@ -345,9 +345,7 @@ function sendToWatch(dict, callback) {
 
 // Test alarm on the watch: rings with the sound and vibration pattern of the alarm, shows "Test"
 function sendTest(t, callback) {
-  var dict = { TEST_SLOT: t.slot };
-  if (typeof t.volume === 'number') dict.TEST_VOLUME = t.volume;  // TEMPORARY volume test buttons
-  sendToWatch(dict, callback);
+  sendToWatch({ TEST_SLOT: t.slot }, callback);
 }
 
 // Send settings from the settings page to the watch

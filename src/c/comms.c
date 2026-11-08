@@ -164,9 +164,8 @@ static void prv_apply_name(int slot, const char *name) {
 }
 
 // Test alarm from the settings page: sound and vibration pattern of the alarm,
-// does not change the stored alarms. volume >= 0 overrides the alarm's volume
-// (TEMPORARY volume test buttons on the settings page).
-static void prv_start_test(int slot, int volume) {
+// does not change the stored alarms
+static void prv_start_test(int slot) {
   const Alarm *a = store_get(slot);
   AlertParams p = {.vibe_pattern = DEFAULT_VIBE_PATTERN, .vibrate = true,
                    .sound = ALARM_SOUND_OFF, .volume = DEFAULT_VOLUME};
@@ -176,7 +175,6 @@ static void prv_start_test(int slot, int volume) {
     p.sound = a->sound;
     p.volume = a->volume;
   }
-  if (volume >= 0 && volume < ALARM_VOLUME_COUNT) p.volume = volume;
   if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;
   ring_show_test(&p);
 }
@@ -187,8 +185,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *t;
 
   if ((t = dict_find(iter, MESSAGE_KEY_TEST_SLOT))) {
-    Tuple *v = dict_find(iter, MESSAGE_KEY_TEST_VOLUME);
-    prv_start_test(t->value->int32, v ? (int)v->value->int32 : -1);
+    prv_start_test(t->value->int32);
     return;
   }
 
