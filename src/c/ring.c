@@ -7,6 +7,7 @@
 #include "i18n.h"
 
 #define AUTO_SNOOZE_MS (60 * 1000)
+#define MAX_RING_MS (30 * 60 * 1000)   // snooze off: stop after 30 minutes (battery)
 #define HOLD_MS 1500         // hold the bottom button this long = stop
 #define TAP_MS 300           // released sooner = snooze
 #define HOLD_FRAME_MS 33     // about 30 frames per second
@@ -33,6 +34,7 @@ static AppTimer *s_hold_timer;
 // Test alarm (from the settings page): rings with the given values, changes nothing
 static bool s_test;
 static AlertParams s_test_params;
+static bool s_test_can_snooze;
 
 static bool prv_in_mask(int slot) {
   return s_mask & (1 << (slot - 1));
@@ -43,6 +45,16 @@ static int prv_first_slot(void) {
     if (prv_in_mask(slot)) return slot;
   }
   return 0;
+}
+
+// Snoozing is possible only if no ringing alarm has snooze off. Without snoozing, only
+// holding the bottom button stops the alarm; everything else keeps it ringing.
+static bool prv_can_snooze(void) {
+  if (s_test) return s_test_can_snooze;
+  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
+    if (prv_in_mask(slot) && store_get(slot)->used && store_get(slot)->snooze == 0) return false;
+  }
+  return true;
 }
 
 bool ring_is_active(void) {
@@ -107,7 +119,7 @@ static void prv_finish(const char *text) {
 }
 
 static void prv_snooze(void) {
-  if (s_state != RING_ACTIVE) return;
+  if (s_state != RING_ACTIVE || !prv_can_snooze()) return;
   if (s_test) {  // test alarm: store nothing, report nothing
     prv_finish(TR("Test ended", "Test beendet"));
     return;
@@ -175,6 +187,20 @@ static void prv_auto_snooze(void *context) {
   prv_snooze();
 }
 
+// Snooze off: no auto snooze; the alarm keeps ringing and stops itself after MAX_RING_MS
+static void prv_max_ring(void *context) {
+  s_timer = NULL;
+  prv_dismiss();
+}
+
+static void prv_start_timer(void) {
+  if (prv_can_snooze()) {
+    s_timer = app_timer_register(AUTO_SNOOZE_MS, prv_auto_snooze, NULL);
+  } else {
+    s_timer = app_timer_register(MAX_RING_MS, prv_max_ring, NULL);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Display and buttons
 // ---------------------------------------------------------------------------
@@ -208,12 +234,15 @@ static void prv_draw(Layer *layer, GContext *ctx) {
     graphics_draw_rect(ctx, GRect(bar.origin.x, fill_top, ACTION_BAR_W, fill_h));
   }
   int cx = bar.origin.x + ACTION_BAR_W / 2;
-  // "zZ" between the top and the middle button
-  int zz_y = b.size.h * 36 / 100 - 16;
-  graphics_context_set_text_color(ctx, zz_y + 14 >= fill_top ? t->fg : t->hl_fg);
-  graphics_draw_text(ctx, "zZ", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                     GRect(bar.origin.x, zz_y, ACTION_BAR_W, 28),
-                     GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  bool can_snooze = prv_can_snooze();
+  // "zZ" between the top and the middle button (not shown when snooze is off)
+  if (can_snooze) {
+    int zz_y = b.size.h * 36 / 100 - 16;
+    graphics_context_set_text_color(ctx, zz_y + 14 >= fill_top ? t->fg : t->hl_fg);
+    graphics_draw_text(ctx, "zZ", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       GRect(bar.origin.x, zz_y, ACTION_BAR_W, 28),
+                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  }
   // check mark next to the bottom button
   int cy = b.size.h * 78 / 100;
   graphics_context_set_stroke_color(ctx, cy >= fill_top ? t->fg : t->hl_fg);
@@ -245,8 +274,9 @@ static void prv_draw(Layer *layer, GContext *ctx) {
 
   // hints at the bottom
   graphics_context_set_text_color(ctx, t->dim);
-  graphics_draw_text(ctx, TR("Any button: snooze\nHold bottom button: stop",
-                             "Taste: Schlummern\nUntere Taste halten: Aus"),
+  graphics_draw_text(ctx, can_snooze ? TR("Any button: snooze\nHold bottom button: stop",
+                                          "Taste: Schlummern\nUntere Taste halten: Aus")
+                                     : TR("Hold bottom button: stop", "Untere Taste halten: Aus"),
                      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
                      GRect(cx0 + 4, b.size.h - 40, content_w - 8, 36), GTextOverflowModeWordWrap,
                      GTextAlignmentCenter, NULL);
@@ -364,14 +394,15 @@ static void prv_open_window(void) {
   prv_start_alert();
 }
 
-void ring_show_test(const AlertParams *params) {
+void ring_show_test(const AlertParams *params, bool can_snooze) {
   if (s_window && !s_test && s_state == RING_ACTIVE) return;  // a real alarm has priority
   if (s_window) window_stack_remove(s_window, false);
   s_test_params = *params;
+  s_test_can_snooze = can_snooze;
   s_mask = 0;
   s_test = true;
   prv_open_window();
-  s_timer = app_timer_register(AUTO_SNOOZE_MS, prv_auto_snooze, NULL);
+  prv_start_timer();
   APP_LOG(APP_LOG_LEVEL_INFO, "Test alarm");
 }
 
@@ -390,6 +421,6 @@ void ring_show(uint8_t slot_mask) {
   s_test = false;
   prv_open_window();
   comms_set_status(ALARM_STATUS_RINGING, prv_first_slot());
-  s_timer = app_timer_register(AUTO_SNOOZE_MS, prv_auto_snooze, NULL);
+  prv_start_timer();
   APP_LOG(APP_LOG_LEVEL_INFO, "Alarm ringing: slots 0x%02x", s_mask);
 }

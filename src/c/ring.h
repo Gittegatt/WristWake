@@ -10,7 +10,8 @@ void ring_show(uint8_t slot_mask);
 
 // Test alarm from the settings page: shows "Test", rings with the sound and vibration pattern
 // of the selected alarm. Snooze/stop change nothing and are not reported to Home Assistant.
-void ring_show_test(const AlertParams *params);
+// can_snooze = false: like an alarm with snooze off (only holding the bottom button stops it)
+void ring_show_test(const AlertParams *params, bool can_snooze);
 
 // true while the ringing screen is open
 bool ring_is_active(void);

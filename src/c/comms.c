@@ -176,7 +176,7 @@ static void prv_start_test(int slot) {
     p.volume = a->volume;
   }
   if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;
-  ring_show_test(&p);
+  ring_show_test(&p, !(a && a->used && a->snooze == 0));
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {

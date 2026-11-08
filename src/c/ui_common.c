@@ -108,6 +108,7 @@ const char *ui_vibe_name(int pattern) {
 
 const char *ui_snooze_name(uint8_t minutes) {
   switch (minutes) {
+    case 0:  return TR("Off", "Aus");
     case 10: return "10 min";
     case 15: return "15 min";
     case 30: return "30 min";

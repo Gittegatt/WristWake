@@ -64,7 +64,7 @@ typedef enum {
 } VibePattern_t;
 
 // Allowed snooze durations in minutes
-#define SNOOZE_OPTION_COUNT 5
+#define SNOOZE_OPTION_COUNT 6   // 0 = snooze off
 extern const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT];
 
 #define DEFAULT_SOUND ALARM_SOUND_OFF

@@ -11,7 +11,7 @@
 
 #define DEFAULT_WATCH_NAME "Pebble"
 
-const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT] = {5, 10, 15, 30, 60};
+const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT] = {0, 5, 10, 15, 30, 60};
 
 static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
   "off", "reveille", "beep", "chime", "rising_beep", "korobeiniki", "westminster", "field_agent",
