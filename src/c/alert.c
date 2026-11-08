@@ -125,6 +125,36 @@ static const SpeakerNote MELODY_RISING[] = {
   NOTE(84, 200, SQR), REST(150), NOTE(84, 200, SQR), REST(700),
 };
 
+// Korobeiniki: Russian folk song (public domain), the melody known from Tetris.
+// A minor, quarter = 150; lengths in eighths, short gap after every note.
+#define KB_8 200
+#define KB_GAP 30
+#define KB_N(midi, n8) NOTE(midi, (n8) * KB_8 - KB_GAP, SQR), REST(KB_GAP)
+#define KB_A KB_N(76, 2), KB_N(71, 1), KB_N(72, 1), KB_N(74, 2), KB_N(72, 1), KB_N(71, 1), \
+             KB_N(69, 2), KB_N(69, 1), KB_N(72, 1), KB_N(76, 2), KB_N(74, 1), KB_N(72, 1), \
+             KB_N(71, 3), KB_N(72, 1), KB_N(74, 2), KB_N(76, 2), \
+             KB_N(72, 2), KB_N(69, 2), KB_N(69, 2), REST(2 * KB_8)
+#define KB_B REST(KB_8), KB_N(74, 2), KB_N(77, 1), KB_N(81, 2), KB_N(79, 1), KB_N(77, 1), \
+             KB_N(76, 3), KB_N(72, 1), KB_N(76, 2), KB_N(74, 1), KB_N(72, 1), \
+             KB_N(71, 2), KB_N(71, 1), KB_N(72, 1), KB_N(74, 2), KB_N(76, 2), \
+             KB_N(72, 2), KB_N(69, 2), KB_N(69, 2), REST(2 * KB_8)
+
+static const SpeakerNote MELODY_KOROBEINIKI[] = {
+  KB_A, KB_A, KB_B, KB_B, REST(4 * KB_8),
+};
+
+// Westminster Quarters (public domain): the full-hour chime, changes 2-5, E major,
+// one octave above the real bells so the small speaker can play it.
+#define WQ_Q 600
+#define WQ_N(midi, n) NOTE(midi, (n) * WQ_Q - 30, SIN), REST(30)
+static const SpeakerNote MELODY_WESTMINSTER[] = {
+  WQ_N(76, 1), WQ_N(80, 1), WQ_N(78, 1), WQ_N(71, 2),
+  WQ_N(76, 1), WQ_N(78, 1), WQ_N(80, 1), WQ_N(76, 2),
+  WQ_N(80, 1), WQ_N(76, 1), WQ_N(78, 1), WQ_N(71, 2),
+  WQ_N(71, 1), WQ_N(78, 1), WQ_N(80, 1), WQ_N(76, 2),
+  REST(2 * WQ_Q),
+};
+
 static AlarmSound s_sound;
 static uint8_t s_volume;
 static bool s_sound_on;
@@ -147,6 +177,10 @@ static void prv_play_once(void) {
     case ALARM_SOUND_BEEP:     notes = MELODY_BEEP;     count = ARRAY_LENGTH(MELODY_BEEP); break;
     case ALARM_SOUND_CHIME:    notes = MELODY_CHIME;    count = ARRAY_LENGTH(MELODY_CHIME); break;
     case ALARM_SOUND_RISING:   notes = MELODY_RISING;   count = ARRAY_LENGTH(MELODY_RISING); break;
+    case ALARM_SOUND_KOROBEINIKI:
+      notes = MELODY_KOROBEINIKI; count = ARRAY_LENGTH(MELODY_KOROBEINIKI); break;
+    case ALARM_SOUND_WESTMINSTER:
+      notes = MELODY_WESTMINSTER; count = ARRAY_LENGTH(MELODY_WESTMINSTER); break;
     default: return;
   }
   if (!speaker_play_notes(notes, count, s_volume)) {
