@@ -222,6 +222,7 @@
       save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
       off: 'aus', days_once: 'einmalig',
       test: 'Testen', test_sent: 'Testalarm läuft auf der Uhr.',
+      vol_test: 'Lautstärke testen:', vol_0: 'Leise', vol_1: 'Mittel', vol_2: 'Laut',
       mode_direct: 'Verbindung zur App: direkt',
       mode_fallback: 'Verbindung zur App: Ersatzweg (die Seite schließt sich beim Speichern)'
     },
@@ -251,6 +252,7 @@
       save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
       off: 'off', days_once: 'once',
       test: 'Test', test_sent: 'Test alarm is ringing on the watch.',
+      vol_test: 'Test volume:', vol_0: 'Quiet', vol_1: 'Medium', vol_2: 'Loud',
       mode_direct: 'Connection to the app: direct',
       mode_fallback: 'Connection to the app: fallback (the page closes when saving)'
     }
@@ -331,6 +333,13 @@
       row.innerHTML =
         '<div class="row"><span class="alarm-time"></span>' +
         '<button class="small" data-slot="' + a.s + '" data-field="test">' + t('test') + '</button></div>' +
+        // TEMPORARY: test buttons for all three volumes (remove after choosing the levels)
+        '<div class="row"><span class="description" style="padding:0">' + t('vol_test') + '</span>' +
+        '<span class="buttons" style="padding:0;gap:0.4rem">' +
+        [0, 1, 2].map(function (v) {
+          return '<button class="small" data-slot="' + a.s + '" data-volume="' + v + '" data-field="voltest">' +
+                 t('vol_' + v) + '</button>';
+        }).join('') + '</span></div>' +
         '<p class="status" data-slot="' + a.s + '" data-field="thint"></p>';
       var time = row.querySelector('.alarm-time');
       time.textContent = pad(a.h) + ':' + pad(a.m) + ' ';
@@ -349,6 +358,11 @@
     });
     box.querySelectorAll('[data-field=test]').forEach(function (button) {
       button.addEventListener('click', function () { runTest(+button.getAttribute('data-slot')); });
+    });
+    box.querySelectorAll('[data-field=voltest]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        runTest(+button.getAttribute('data-slot'), +button.getAttribute('data-volume'));
+      });
     });
   }
 
@@ -585,9 +599,10 @@
   }
 
   // Test alarm: rings on the watch with the sound and vibration pattern of this alarm
-  function runTest(slot) {
+  function runTest(slot, volume) {
     var hint = field(slot, 'thint');
     var test = { slot: slot };
+    if (typeof volume === 'number') test.volume = volume;
     if (!hasBridge()) return closeWith({ test: test });
     setStatus(hint, '…');
     call({ type: 'test', test: test }).then(function () {

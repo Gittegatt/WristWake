@@ -35,6 +35,7 @@
       "NAMES",
       "WATCH_NAME",
       "TEST_SLOT",
+      "TEST_VOLUME",
       "LEFT_HANDED"
     ],
     "resources": {
