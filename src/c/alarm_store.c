@@ -21,7 +21,7 @@ static const char *const SOUND_KEYS[ALARM_SOUND_COUNT] = {
 };
 
 static const char *const VOLUME_KEYS[ALARM_VOLUME_COUNT] = {"quiet", "low", "medium", "high"};
-static const char *const CHALLENGE_KEYS[CHALLENGE_COUNT] = {"off", "follow", "guess"};
+static const char *const CHALLENGE_KEYS[CHALLENGE_COUNT] = {"off", "follow", "remember"};
 
 static const char *const VIBE_KEYS[VIBE_PATTERN_COUNT] = {
   "standard", "pulse", "double", "heartbeat", "rising", "sos", "long", "gentle", "aurora"

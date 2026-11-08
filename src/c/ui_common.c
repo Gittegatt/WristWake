@@ -72,7 +72,7 @@ const char *ui_pause_name(int index) {
 const char *ui_challenge_name(AlarmChallenge challenge) {
   switch (challenge) {
     case CHALLENGE_FOLLOW: return TR("Follow", "Folgen");
-    case CHALLENGE_GUESS:  return TR("Guess", "Raten");
+    case CHALLENGE_REMEMBER: return TR("Remember", "Merken");
     default:               return TR("Off", "Aus");
   }
 }

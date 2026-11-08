@@ -53,7 +53,7 @@ typedef enum {
 typedef enum {
   CHALLENGE_OFF = 0,
   CHALLENGE_FOLLOW,   // press the shown buttons one after the other
-  CHALLENGE_GUESS,    // guess hidden buttons; a wrong guess starts over
+  CHALLENGE_REMEMBER, // guess and remember hidden buttons; a wrong guess starts over
   CHALLENGE_COUNT
 } AlarmChallenge;
 

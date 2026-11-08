@@ -18,7 +18,7 @@
 typedef enum { RING_ACTIVE, RING_CHALLENGE, RING_DONE } RingState;
 
 // Challenge: a random sequence of buttons that must be pressed before the alarm stops
-#define CHALLENGE_GUESS_LEN 4   // Guess always has 4 boxes (they fit on the screen)
+#define CHALLENGE_REMEMBER_LEN 4   // Remember always has 4 boxes (they fit on the screen)
 #define CHALLENGE_IDLE_MS (30 * 1000)   // no input: back to the ringing screen
 enum { CH_UP = 0, CH_SELECT, CH_DOWN };
 
@@ -75,7 +75,7 @@ static bool prv_can_snooze(void) {
   return true;
 }
 
-// Challenge of the ringing alarms (the hardest one wins: Guess before Follow)
+// Challenge of the ringing alarms (the hardest one wins: Remember before Follow)
 static RingChallenge prv_needs_challenge(void) {
   if (s_test) return s_test_challenge;
   RingChallenge ch = {CHALLENGE_OFF, DEFAULT_CHALLENGE_LEN, 1000};
@@ -268,13 +268,13 @@ static void prv_draw(Layer *layer, GContext *ctx) {
 
   if (s_state == RING_CHALLENGE) {
     graphics_context_set_text_color(ctx, t->fg);
-    bool guess = (s_challenge_mode == CHALLENGE_GUESS);
-    graphics_draw_text(ctx, guess ? TR("Guess the buttons:", "Tasten erraten:") : TR("Press:", "Drücke:"),
+    bool remember = (s_challenge_mode == CHALLENGE_REMEMBER);
+    graphics_draw_text(ctx, remember ? TR("Guess the buttons:", "Tasten erraten:") : TR("Press:", "Drücke:"),
                        fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                        GRect(8, 14, b.size.w - 16, 30), GTextOverflowModeFill,
                        GTextAlignmentCenter, NULL);
-    if (guess) {
-      // Guess: one box per step; "?" until guessed, the current box is outlined
+    if (remember) {
+      // Remember: one box per step; "?" until guessed, the current box is outlined
       int slot_w = (b.size.w - 16) / s_challenge_len;
       for (int i = 0; i < s_challenge_len; i++) {
         GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 104);
@@ -408,7 +408,7 @@ static void prv_challenge_touch_timer(void) {
 
 static void prv_challenge_start(const RingChallenge *ch) {
   s_challenge_mode = ch->mode;
-  s_challenge_len = ch->mode == CHALLENGE_GUESS ? CHALLENGE_GUESS_LEN : ch->length;
+  s_challenge_len = ch->mode == CHALLENGE_REMEMBER ? CHALLENGE_REMEMBER_LEN : ch->length;
   if (s_challenge_len < CHALLENGE_LEN_MIN || s_challenge_len > CHALLENGE_LEN_MAX) {
     s_challenge_len = DEFAULT_CHALLENGE_LEN;
   }
@@ -431,7 +431,7 @@ static void prv_pause_over(void *context) {
 }
 
 // A button press while the challenge is shown: right = next step.
-// Wrong: Follow gets a new sequence; Guess starts over at the first box (same sequence).
+// Wrong: Follow gets a new sequence; Remember starts over at the first box (same sequence).
 static void prv_challenge_input(int button) {
   if (s_challenge_waiting) return;   // Follow pause: presses do not count
   if (button == s_challenge[s_challenge_pos]) {
@@ -447,7 +447,7 @@ static void prv_challenge_input(int button) {
     }
   } else {
     vibes_short_pulse();
-    if (s_challenge_mode == CHALLENGE_GUESS) {
+    if (s_challenge_mode == CHALLENGE_REMEMBER) {
       s_challenge_pos = 0;
     } else {
       if (s_pause_timer) {
