@@ -232,6 +232,12 @@ static const SpeakerNote MELODY_PULSE[] = {
 };
 
 static AlarmSound s_sound;
+// Speaker volume in percent (the watch speaker is loud; 80 % was too loud on the real watch)
+#define VOLUME_NORMAL 40
+#define VOLUME_RISE_START 15   // Rising and Sunrise start quiet ...
+#define VOLUME_RISE_STEP 5     // ... and get louder with every repetition ...
+#define VOLUME_RISE_MAX 60     // ... up to this level
+
 static uint8_t s_volume;
 static bool s_sound_on;
 
@@ -239,8 +245,8 @@ static void prv_play_once(void);
 
 static void prv_sound_finished(SpeakerFinishReason reason, void *ctx) {
   if (!s_sound_on || reason != SpeakerFinishReasonDone) return;
-  if ((s_sound == ALARM_SOUND_RISING || s_sound == ALARM_SOUND_SUNRISE) && s_volume < 100) {
-    s_volume = s_volume + 10 > 100 ? 100 : s_volume + 10;
+  if ((s_sound == ALARM_SOUND_RISING || s_sound == ALARM_SOUND_SUNRISE) && s_volume < VOLUME_RISE_MAX) {
+    s_volume = s_volume + VOLUME_RISE_STEP > VOLUME_RISE_MAX ? VOLUME_RISE_MAX : s_volume + VOLUME_RISE_STEP;
   }
   prv_play_once();
 }
@@ -298,7 +304,8 @@ void alert_start(const AlertParams *p) {
       APP_LOG(APP_LOG_LEVEL_INFO, "Speaker muted, vibration only");
     } else {
       s_sound = sound;
-      s_volume = (sound == ALARM_SOUND_RISING || sound == ALARM_SOUND_SUNRISE) ? 30 : 80;
+      s_volume = (sound == ALARM_SOUND_RISING || sound == ALARM_SOUND_SUNRISE) ? VOLUME_RISE_START
+                                                                           : VOLUME_NORMAL;
       s_sound_on = true;
       speaker_set_finish_callback(prv_sound_finished, NULL);
       prv_play_once();
