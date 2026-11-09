@@ -80,9 +80,10 @@ def prepare(lang):
     c = os.path.join(WORK, 'src', 'c')
     marker = ',\n    '.join('.%s = {.argb = 0x%02X}' % (r, 0xC0 | (m[0] << 4) | (m[1] << 2) | m[2])
                            for r, m in zip(ROLES, MARKERS))
-    patch(os.path.join(c, 'theme.c'), 'static void prv_apply(void) {\n',
+    patch(os.path.join(c, 'theme.c'), 'static void prv_apply(ThemeMode mode) {\n',
           'static void prv_build_marker(void) {\n  s_theme = (Theme) {\n    %s,\n  };\n}\n\n'
-          'static void prv_apply(void) {\n  prv_build_marker();\n  return;\n' % marker)
+          'static void prv_apply(ThemeMode mode) {\n  s_active = mode;\n  prv_build_marker();\n  return;\n'
+          % marker)
     patch(os.path.join(c, 'i18n.h'), 'g_lang_de = locale && strncmp(locale, "de", 2) == 0;',
           '(void)locale;\n  g_lang_de = %d;' % (1 if lang == 'de' else 0))
     patch(os.path.join(c, 'scheduler.c'), 'void scheduler_update(void) {\n',
