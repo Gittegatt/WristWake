@@ -11,6 +11,10 @@
 #endif
 
 #define KEY_STATUS 5          // storage key: status | (slot << 8)
+#define KEY_HA_BASE 30        // 30-33: copy of the Home Assistant connection, in chunks
+#define HA_CHUNKS 4
+#define HA_CHUNK_LEN 250      // characters per chunk (persist strings hold at most 256 bytes)
+#define HA_BUF_SIZE (HA_CHUNKS * HA_CHUNK_LEN + 1)
 #define STATE_BUF_SIZE 3000
 #define NAME_SEPARATOR '\x1f' // separates names in the NAMES field
 
@@ -22,6 +26,38 @@ static bool s_outbox_busy;
 static AlarmStatus s_status;
 static int s_status_slot;
 static void (*s_on_theme_changed)(void);
+// Copy of the Home Assistant connection from the phone (JSON with address and webhook ID,
+// never the token). If the phone loses its copy (e.g. reinstalled app), it gets it back from
+// here instead of registering again, which would create a second set of sensors in HA.
+static char s_ha[HA_BUF_SIZE];
+static bool s_send_ha;   // phone asked for the copy: send it with the next state
+
+static void prv_ha_load(void) {
+  s_ha[0] = '\0';
+  for (int i = 0; i < HA_CHUNKS; i++) {
+    char part[HA_CHUNK_LEN + 1];
+    if (persist_read_string(KEY_HA_BASE + i, part, sizeof(part)) <= 0) break;
+    strncat(s_ha, part, sizeof(s_ha) - strlen(s_ha) - 1);
+    if (strlen(part) < HA_CHUNK_LEN) break;
+  }
+}
+
+static void prv_ha_save(const char *text) {
+  strncpy(s_ha, text, sizeof(s_ha) - 1);
+  s_ha[sizeof(s_ha) - 1] = '\0';
+  size_t len = strlen(s_ha);
+  for (int i = 0; i < HA_CHUNKS; i++) {
+    size_t start = (size_t)i * HA_CHUNK_LEN;
+    if (start < len) {
+      char part[HA_CHUNK_LEN + 1];
+      strncpy(part, s_ha + start, HA_CHUNK_LEN);
+      part[HA_CHUNK_LEN] = '\0';
+      persist_write_string(KEY_HA_BASE + i, part);
+    } else {
+      persist_delete(KEY_HA_BASE + i);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Build JSON
@@ -65,10 +101,11 @@ static void prv_build_state(void) {
   APPEND(",\"lang\":\"%s\",\"t\":%ld,\"st\":\"%s\",\"ss\":%d",
          g_lang_de ? "de" : "en", (long)time(NULL), STATUS_KEYS[s_status], s_status_slot);
   ThemeSchedule ts = theme_schedule();
-  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"a\":[",
+  // "hb": the watch keeps a copy of the Home Assistant connection
+  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"a\":[",
          theme_mode(), tc.bg.argb, tc.fg.argb, tc.hl_bg.argb, tc.hl_fg.argb,
          theme_left_handed() ? 1 : 0, ts.mode, ts.night, ts.day_min, ts.night_min,
-         ts.day_offset, ts.night_offset);
+         ts.day_offset, ts.night_offset, s_ha[0] ? 1 : 0);
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     const Alarm *a = store_get(slot);
     if (slot > 1) APPEND(",");
@@ -109,9 +146,12 @@ void comms_send_state(void) {
   }
   prv_build_state();
   dict_write_cstring(iter, MESSAGE_KEY_STATE, s_state);
+  bool with_ha = s_send_ha && s_ha[0];
+  if (with_ha) dict_write_cstring(iter, MESSAGE_KEY_HA_CONFIG, s_ha);
   if (app_message_outbox_send() == APP_MSG_OK) {
     s_outbox_busy = true;
     s_send_pending = false;
+    if (with_ha) s_send_ha = false;
   } else {
     s_send_pending = true;
   }
@@ -252,7 +292,13 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   }
   store_batch_end();
 
-  if (changed || dict_find(iter, MESSAGE_KEY_REQUEST_STATE)) comms_send_state();
+  if ((t = dict_find(iter, MESSAGE_KEY_HA_CONFIG)) && t->type == TUPLE_CSTRING) {
+    prv_ha_save(t->value->cstring);   // empty = connection removed
+    changed = true;
+  }
+  Tuple *request = dict_find(iter, MESSAGE_KEY_REQUEST_STATE);
+  if (request && request->value->int32 == 2) s_send_ha = true;   // phone lost its copy
+  if (changed || request) comms_send_state();
   if (theme_changed && s_on_theme_changed) s_on_theme_changed();
 }
 
@@ -261,11 +307,13 @@ void comms_init(void (*on_theme_changed)(void)) {
   int32_t raw = persist_exists(KEY_STATUS) ? persist_read_int(KEY_STATUS) : 0;
   s_status = (raw & 0xFF) <= ALARM_STATUS_DISMISSED ? (AlarmStatus)(raw & 0xFF) : ALARM_STATUS_IDLE;
   s_status_slot = (raw >> 8) & 0xFF;
+  prv_ha_load();
 
   app_message_register_inbox_received(prv_inbox_received);
   app_message_register_outbox_sent(prv_outbox_sent);
   app_message_register_outbox_failed(prv_outbox_failed);
   uint32_t inbox = app_message_inbox_size_maximum();
   uint32_t outbox = app_message_outbox_size_maximum();
-  app_message_open(inbox < 2048 ? inbox : 2048, outbox < STATE_BUF_SIZE + 64 ? outbox : STATE_BUF_SIZE + 64);
+  uint32_t wanted = STATE_BUF_SIZE + HA_BUF_SIZE + 64;
+  app_message_open(inbox < 2048 ? inbox : 2048, outbox < wanted ? outbox : wanted);
 }

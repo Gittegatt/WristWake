@@ -9,7 +9,9 @@
 //   position and send only the times to the watch (the position stays on the phone)
 //
 // The watch is the source of truth. Only a copy of the state and the webhook addresses
-// are stored here (never the token).
+// are stored here (never the token). The watch also keeps a copy of the webhook addresses,
+// so a reinstalled app can continue without registering again (that would create a second
+// set of sensors in Home Assistant).
 
 var LS_STATE = 'ww_state';      // last state of the watch
 var LS_HA = 'ww_ha';            // {url, webhook_id, cloudhook_url, remote_ui_url, device_name}
@@ -92,6 +94,7 @@ function sendWebhook(payload, callback) {
       if (status === 410) {  // registration was deleted in Home Assistant
         ha.deleted = true;
         store(LS_HA, ha);
+        backupToWatch();
         return callback('gone');
       }
       callback(null, status, data);
@@ -238,11 +241,64 @@ function registerSensors(callback) {
   registerSensorList(buildSensors(state), callback);
 }
 
+// Copy of the connection on the watch (addresses and webhook ID, never the token); empty = none
+function backupToWatch() {
+  var copy = ha && !ha.deleted ? JSON.stringify({
+    u: ha.url, w: ha.webhook_id, c: ha.cloudhook_url, r: ha.remote_ui_url, n: ha.device_name
+  }) : '';
+  sendToWatch({ HA_CONFIG: copy }, function () {});
+}
+
+function restoreFromWatch(text) {
+  try {
+    var c = JSON.parse(text);
+    if (!c.w || !c.u) return;
+    ha = { url: c.u, webhook_id: c.w, cloudhook_url: c.c || null, remote_ui_url: c.r || null, device_name: c.n };
+    store(LS_HA, ha);
+    log('Home Assistant connection restored from the watch');
+  } catch (e) { /* invalid copy: ignore */ }
+}
+
+// Finish a (re)connection: sensors, current state, copy on the watch
+function finishConnect(deviceName, callback) {
+  updateRegistration(deviceName);
+  registerSensors(function (sensorErr) {
+    if (sensorErr) return callback(sensorErr === 'gone' ? 'gone' : 'sensors');
+    backupToWatch();
+    pushState(function () { callback(null); });
+  });
+}
+
 // The token is only used here and discarded afterwards (never stored, never logged).
+// An existing connection that still works is kept: registering again would give the device a
+// new webhook ID, and Home Assistant would create a second set of sensors.
 function connect(url, token, deviceName, callback) {
   if (!state) return callback('no_state');
   url = normalizeUrl(url);
   if (!url || !token) return callback('missing');
+  if (ha && !ha.deleted) {
+    return request('POST', url + '/api/webhook/' + ha.webhook_id, {}, { type: 'get_config' },
+      function (err, status, data) {
+        if (!err && status === 200 && data && typeof data === 'object') {
+          token = null;
+          ha.url = url;
+          store(LS_HA, ha);
+          log('Existing Home Assistant connection kept');
+          return finishConnect(deviceName || state.wn, callback);
+        }
+        if (err && status !== 410) {
+          token = null;
+          return callback(err === 'timeout' ? 'timeout' : 'network');
+        }
+        register(url, token, deviceName, callback);   // connection gone: register again
+        token = null;
+      });
+  }
+  register(url, token, deviceName, callback);
+  token = null;
+}
+
+function register(url, token, deviceName, callback) {
   var body = registrationInfo(deviceName || state.wn);
   body.device_id = 'wristwake_' + state.id;
   body.app_id = 'wristwake';
@@ -265,6 +321,7 @@ function connect(url, token, deviceName, callback) {
       log('Registered with Home Assistant');
       registerSensors(function (sensorErr) {
         if (sensorErr) return callback('sensors');
+        backupToWatch();
         pushState(function () { callback(null); });
       });
     });
@@ -477,11 +534,13 @@ function haInfo() {
 
 Pebble.addEventListener('ready', function () {
   log('ready');
-  sendToWatch({ REQUEST_STATE: 1 }, function () {});
+  // 2 = also send the copy of the Home Assistant connection (this phone has none)
+  sendToWatch({ REQUEST_STATE: ha ? 1 : 2 }, function () {});
   if (ha && !ha.deleted) refreshDisabled(function () {});
 });
 
 Pebble.addEventListener('appmessage', function (e) {
+  if (e.payload && e.payload.HA_CONFIG && !ha) restoreFromWatch(e.payload.HA_CONFIG);
   var raw = e.payload && e.payload.STATE;
   if (!raw) return;
   try {
@@ -492,6 +551,8 @@ Pebble.addEventListener('appmessage', function (e) {
   }
   store(LS_STATE, state);
   pushState();
+  // Connected before this version: give the watch its copy of the connection
+  if (ha && !ha.deleted && state.hb === 0) backupToWatch();
   // Day/night by the sun: fresh times once per app start
   if (!sunSent && state.ts && state.ts[0] === 2) {
     sunSent = true;
@@ -543,6 +604,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
     ha = null;
     store(LS_HA, null);
     store(LS_PENDING, false);
+    backupToWatch();
   }
   if (msg.connect) {
     var token = msg.connect.token;
@@ -584,6 +646,7 @@ Pebble.addEventListener('configmessage', function (e) {
     ha = null;
     store(LS_HA, null);
     store(LS_PENDING, false);
+    backupToWatch();
     e.respond({ ok: true, ha: haInfo() });
   } else {
     e.respond({ error: 'unknown' });

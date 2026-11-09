@@ -38,7 +38,8 @@
       "TEST_SLOT",
       "LEFT_HANDED",
       "THEME_SCHEDULE",
-      "SUN_TIMES"
+      "SUN_TIMES",
+      "HA_CONFIG"
     ],
     "resources": {
       "media": [
