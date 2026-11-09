@@ -234,6 +234,9 @@ void theme_init(void) {
     memcpy(raw[0], CUSTOM_DEFAULTS[0], 4);
     for (int i = 0; i < THEME_CUSTOM_COUNT; i++) persist_write_data(CUSTOM_KEYS[i], raw[i], 4);
   }
+  // Custom 2 is always stored from now on: this marks the move as done, so Custom 1 colors
+  // set later (with Custom 2 left at its start colors) are never moved
+  if (!persist_exists(KEY_THEME_CUSTOM2)) persist_write_data(KEY_THEME_CUSTOM2, raw[1], 4);
   for (int i = 0; i < THEME_CUSTOM_COUNT; i++) {
     s_custom[i] = (ThemeBase) {
       .bg = {.argb = raw[i][0] | 0xC0}, .fg = {.argb = raw[i][1] | 0xC0},
