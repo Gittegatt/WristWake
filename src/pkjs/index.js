@@ -121,13 +121,57 @@ function dayList(mask) {
   return days;
 }
 
+// Alarm symbols (symbols.c on the watch) -> Home Assistant icon
+var SYMBOL_ICONS = {
+  sun: 'mdi:weather-sunny',
+  sun_horizon: 'mdi:weather-sunset-up',
+  moon: 'mdi:weather-night',
+  moon_horizon: 'mdi:weather-sunset-down',
+  cup: 'mdi:coffee',
+  work: 'mdi:briefcase',
+  sleep: 'mdi:bed',
+  medicine: 'mdi:pill',
+  sport: 'mdi:dumbbell',
+  learn: 'mdi:book-open-variant',
+  heart: 'mdi:heart',
+  pet: 'mdi:paw',
+  bell: 'mdi:bell',
+  home: 'mdi:home',
+  train: 'mdi:train',
+  car: 'mdi:car',
+  trash: 'mdi:trash-can',
+  phone: 'mdi:phone',
+  birthday: 'mdi:cake-variant',
+  child: 'mdi:human-child',
+  plane: 'mdi:airplane',
+  bike: 'mdi:bike',
+  plant: 'mdi:sprout',
+  food: 'mdi:silverware-fork-knife',
+  water: 'mdi:water',
+  calendar: 'mdi:calendar',
+  star: 'mdi:star',
+  music: 'mdi:music',
+  important: 'mdi:exclamation-thick',
+  question: 'mdi:help'
+};
+var SYMBOL_SHOW_HA = 8;   // symbols.h
+
+// Icon of an alarm sensor: its symbol (if shown in Home Assistant), otherwise the alarm clock
+function alarmIcon(st, a, fallback) {
+  if (a && a.sy && SYMBOL_ICONS[a.sy] && ((st.sf === undefined ? 15 : st.sf) & SYMBOL_SHOW_HA)) {
+    return SYMBOL_ICONS[a.sy];
+  }
+  return fallback;
+}
+
 function alarmAttributes(a) {
   if (!a.u) return { slot: a.s, used: false };
   return {
     slot: a.s, used: true, name: a.n || '', time: pad(a.h) + ':' + pad(a.m),
     days: dayList(a.d), enabled: !!a.e, sound: a.so, vibrate: !!a.vi, pattern: a.p, snooze: a.z,
     'protected': !!a.pr, volume: a.vo || 'medium', challenge: a.ch || 'off',
-    challenge_length: a.ch === 'remember' ? (a.rl || 4) : (a.cl || 4), challenge_pause: (a.cp || 1000) / 1000
+    challenge_length: a.ch === 'remember' ? (a.rl || 4) : (a.cl || 4), challenge_pause: (a.cp || 1000) / 1000,
+    symbol: a.sy || 'none'
   };
 }
 
@@ -148,7 +192,7 @@ function buildSensors(st) {
   });
   sensors.push({
     type: 'sensor', unique_id: id + '_next', name: de ? 'Nächster Wecker' : 'Next alarm',
-    device_class: 'timestamp', icon: 'mdi:alarm', state: next ? iso(next.nx) : null,
+    device_class: 'timestamp', icon: alarmIcon(st, next, 'mdi:alarm'), state: next ? iso(next.nx) : null,
     attributes: {
       slot: next ? next.s : null, name: next ? next.n : null,
       alarms: st.a.filter(function (a) { return a.u; }).map(alarmAttributes)
@@ -161,7 +205,7 @@ function buildSensors(st) {
     var label = (de ? 'Wecker ' : 'Alarm ') + a.s + (a.u && a.n ? ' · ' + a.n : '');
     sensors.push({
       type: 'sensor', unique_id: id + '_wecker_' + a.s, name: label,
-      device_class: 'timestamp', icon: active ? 'mdi:alarm' : 'mdi:alarm-off',
+      device_class: 'timestamp', icon: active ? alarmIcon(st, a, 'mdi:alarm') : 'mdi:alarm-off',
       state: active && a.nx ? iso(a.nx) : null, attributes: alarmAttributes(a)
     });
     sensors.push({
@@ -516,6 +560,7 @@ function applySettings(s, callback) {
     WATCH_NAME: s.watch_name,
     LEFT_HANDED: s.left_handed ? 1 : 0
   };
+  if (s.symbol_flags !== undefined) dict.SYMBOL_FLAGS = s.symbol_flags;
   if (s.schedule) dict.THEME_SCHEDULE = scheduleBytes(s.schedule);
   sendToWatch(dict, function (err) {
     if (!err) updateRegistration(s.watch_name);

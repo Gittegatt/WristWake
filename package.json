@@ -39,7 +39,8 @@
       "LEFT_HANDED",
       "THEME_SCHEDULE",
       "SUN_TIMES",
-      "HA_CONFIG"
+      "HA_CONFIG",
+      "SYMBOL_FLAGS"
     ],
     "resources": {
       "media": [
@@ -48,6 +49,306 @@
           "name": "MENU_ICON",
           "file": "images/menu_icon.png",
           "menuIcon": true
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SUN_S",
+          "file": "images/symbols/sun_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SUN_L",
+          "file": "images/symbols/sun_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SUN_HORIZON_S",
+          "file": "images/symbols/sun_horizon_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SUN_HORIZON_L",
+          "file": "images/symbols/sun_horizon_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MOON_S",
+          "file": "images/symbols/moon_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MOON_L",
+          "file": "images/symbols/moon_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MOON_HORIZON_S",
+          "file": "images/symbols/moon_horizon_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MOON_HORIZON_L",
+          "file": "images/symbols/moon_horizon_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CUP_S",
+          "file": "images/symbols/cup_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CUP_L",
+          "file": "images/symbols/cup_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_WORK_S",
+          "file": "images/symbols/work_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_WORK_L",
+          "file": "images/symbols/work_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SLEEP_S",
+          "file": "images/symbols/sleep_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SLEEP_L",
+          "file": "images/symbols/sleep_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MEDICINE_S",
+          "file": "images/symbols/medicine_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MEDICINE_L",
+          "file": "images/symbols/medicine_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SPORT_S",
+          "file": "images/symbols/sport_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_SPORT_L",
+          "file": "images/symbols/sport_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_LEARN_S",
+          "file": "images/symbols/learn_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_LEARN_L",
+          "file": "images/symbols/learn_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_HEART_S",
+          "file": "images/symbols/heart_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_HEART_L",
+          "file": "images/symbols/heart_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PET_S",
+          "file": "images/symbols/pet_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PET_L",
+          "file": "images/symbols/pet_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BELL_S",
+          "file": "images/symbols/bell_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BELL_L",
+          "file": "images/symbols/bell_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_HOME_S",
+          "file": "images/symbols/home_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_HOME_L",
+          "file": "images/symbols/home_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_TRAIN_S",
+          "file": "images/symbols/train_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_TRAIN_L",
+          "file": "images/symbols/train_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CAR_S",
+          "file": "images/symbols/car_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CAR_L",
+          "file": "images/symbols/car_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_TRASH_S",
+          "file": "images/symbols/trash_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_TRASH_L",
+          "file": "images/symbols/trash_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PHONE_S",
+          "file": "images/symbols/phone_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PHONE_L",
+          "file": "images/symbols/phone_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BIRTHDAY_S",
+          "file": "images/symbols/birthday_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BIRTHDAY_L",
+          "file": "images/symbols/birthday_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CHILD_S",
+          "file": "images/symbols/child_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CHILD_L",
+          "file": "images/symbols/child_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PLANE_S",
+          "file": "images/symbols/plane_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PLANE_L",
+          "file": "images/symbols/plane_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BIKE_S",
+          "file": "images/symbols/bike_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_BIKE_L",
+          "file": "images/symbols/bike_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PLANT_S",
+          "file": "images/symbols/plant_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_PLANT_L",
+          "file": "images/symbols/plant_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_FOOD_S",
+          "file": "images/symbols/food_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_FOOD_L",
+          "file": "images/symbols/food_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_WATER_S",
+          "file": "images/symbols/water_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_WATER_L",
+          "file": "images/symbols/water_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CALENDAR_S",
+          "file": "images/symbols/calendar_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_CALENDAR_L",
+          "file": "images/symbols/calendar_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_STAR_S",
+          "file": "images/symbols/star_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_STAR_L",
+          "file": "images/symbols/star_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MUSIC_S",
+          "file": "images/symbols/music_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_MUSIC_L",
+          "file": "images/symbols/music_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_IMPORTANT_S",
+          "file": "images/symbols/important_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_IMPORTANT_L",
+          "file": "images/symbols/important_l.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_QUESTION_S",
+          "file": "images/symbols/question_s.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SYM_QUESTION_L",
+          "file": "images/symbols/question_l.png"
         }
       ]
     }

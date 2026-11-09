@@ -245,13 +245,18 @@ GColor ui_header_fg(void) {
 // Header in the selection colors (see theme.c), with a 2 pixel strip in the background color
 // at the bottom, so it stands out from a highlighted row of the same color.
 void ui_draw_header_bar(GContext *ctx, GRect bounds, const char *title, GFont font, int text_y) {
+  ui_draw_header_bar_at(ctx, bounds, title, font, 8, text_y);
+}
+
+void ui_draw_header_bar_at(GContext *ctx, GRect bounds, const char *title, GFont font, int text_x,
+                           int text_y) {
   const Theme *t = theme();
   graphics_context_set_fill_color(ctx, t->header_bg);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   graphics_context_set_fill_color(ctx, t->bg);
   graphics_fill_rect(ctx, GRect(0, bounds.size.h - 2, bounds.size.w, 2), 0, GCornerNone);
   graphics_context_set_text_color(ctx, ui_header_fg());
-  graphics_draw_text(ctx, title, font, GRect(8, text_y, bounds.size.w - 16, bounds.size.h),
+  graphics_draw_text(ctx, title, font, GRect(text_x, text_y, bounds.size.w - text_x - 8, bounds.size.h),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 

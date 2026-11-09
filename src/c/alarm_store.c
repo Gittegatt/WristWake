@@ -1,7 +1,8 @@
 #include "alarm_store.h"
+#include "symbols.h"
 
 // Persistent storage keys (theme: 10-12, see theme.c; status: 5, see comms.c)
-#define STORE_SCHEMA_VERSION 11
+#define STORE_SCHEMA_VERSION 12
 #define KEY_SCHEMA      1
 #define KEY_WATCH_ID    2
 #define KEY_WATCH_NAME  3
@@ -129,6 +130,7 @@ static void prv_sanitize(Alarm *alarm) {
   if (alarm->last_sound == ALARM_SOUND_OFF || alarm->last_sound >= ALARM_SOUND_COUNT) {
     alarm->last_sound = DEFAULT_LAST_SOUND;
   }
+  if (alarm->symbol >= SYMBOL_COUNT) alarm->symbol = SYMBOL_NONE;
 }
 
 static void prv_generate_watch_id(void) {
@@ -199,7 +201,11 @@ static void prv_migrate_old(int32_t schema) {
     if (schema == 10 && read >= (int)offsetof(Alarm, last_sound)) {
       memcpy(&alarm, raw, offsetof(Alarm, last_sound));      // schema 10: no last sound yet
     }
-    alarm.last_sound = alarm.sound != ALARM_SOUND_OFF ? alarm.sound : DEFAULT_LAST_SOUND;
+    if (schema <= 10) alarm.last_sound = alarm.sound != ALARM_SOUND_OFF ? alarm.sound : DEFAULT_LAST_SOUND;
+    if (schema == 11 && read >= (int)offsetof(Alarm, symbol)) {
+      memcpy(&alarm, raw, offsetof(Alarm, symbol));          // schema 11: no symbol yet
+    }
+    alarm.symbol = SYMBOL_NONE;
     persist_write_data(key, &alarm, sizeof(alarm));
   }
   for (int k = 0; k < 3; k++) persist_delete(KEY_OLD_VIBE_MS + k);

@@ -18,7 +18,8 @@ typedef struct {
   int pause_ms;   // Follow: pause before the next button appears
 } RingChallenge;
 
-void ring_show_test(const AlertParams *params, bool can_snooze, const RingChallenge *challenge);
+// symbol: symbols.h number shown on the ringing screen (0 = none)
+void ring_show_test(const AlertParams *params, bool can_snooze, const RingChallenge *challenge, int symbol);
 
 // true while the ringing screen is open
 bool ring_is_active(void);

@@ -7,6 +7,7 @@
 #include "theme.h"
 #include "ui_common.h"
 #include "i18n.h"
+#include "symbols.h"
 
 bool g_lang_de = false;
 
@@ -41,6 +42,7 @@ int main(void) {
   i18n_init();
   store_init();
   theme_init();
+  symbols_init();
 #ifdef PREVIEW_THEME
   // For test screenshots only: build with "#define PREVIEW_THEME 1" (Dark) or 2 (Custom).
   // Note: the theme is then stored on the watch.

@@ -106,6 +106,7 @@
   input[type=time] { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
              font: inherit; padding: 0.2rem 0.4rem; min-height: 2.1rem; color-scheme: dark; }
   input[type=time].err { outline: 1px solid var(--err); }
+  .sun-time { flex: 1; text-align: left; padding-left: 0.5rem; color: var(--desc); }
   .offset { display: flex; gap: 0.4rem; align-items: center; }
   .offset select { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
              font: inherit; min-height: 2.1rem; padding: 0 0.5rem; }
@@ -163,6 +164,31 @@
     <div id="alarms"></div>
   </div>
 
+  <div class="section">
+    <div class="component component-heading"><h4 data-t="sym_title"></h4></div>
+    <div class="component"><div class="description" style="padding-top:0.7rem" data-t="sym_help"></div></div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="sym_list"></span>
+        <input id="sym-list" type="checkbox"><span class="track"></span>
+      </label>
+    </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="sym_menu"></span>
+        <input id="sym-menu" type="checkbox"><span class="track"></span>
+      </label>
+    </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="sym_ring"></span>
+        <input id="sym-ring" type="checkbox"><span class="track"></span>
+      </label>
+    </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="sym_ha"></span>
+        <input id="sym-ha" type="checkbox"><span class="track"></span>
+      </label>
+    </div>
+  </div>
+
   <div class="section" id="design-section">
     <div class="component component-heading"><h4 data-t="design_title"></h4></div>
     <div class="component component-select">
@@ -206,14 +232,13 @@
           <p id="times-err" class="status err"></p></div>
       </div>
       <div id="sched-sun">
-        <div class="component"><label><span data-t="sun_day"></span>
+        <div class="component"><label><span data-t="sun_day"></span><span id="day-sun" class="sun-time"></span>
           <span class="offset"><select id="day-sign"><option value="1">+</option><option value="-1">−</option></select>
           <select id="day-h"></select>h <select id="day-m"></select>min</span></label></div>
-        <div class="component"><label><span data-t="sun_night"></span>
+        <div class="component"><label><span data-t="sun_night"></span><span id="night-sun" class="sun-time"></span>
           <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
           <select id="night-h"></select>h <select id="night-m"></select>min</span></label>
-          <p id="sun-today" class="status"></p>
-          <div class="description" data-t="sun_hint"></div></div>
+          <p id="sun-today" class="status"></p></div>
       </div>
     </div>
     <div id="custom" class="hidden"></div>
@@ -252,6 +277,8 @@
       err_no_state: 'Noch keine Daten von der Uhr. Ist WristWake auf der Uhr geöffnet?',
       err_watch: 'Uhr nicht erreichbar. Ist WristWake auf der Uhr geöffnet?',
       watch_title: 'Uhr', watch_name: 'Name der Uhr', watch_name_hint: 'Wird in Home Assistant als Gerätename verwendet.',
+      sym_title: 'Wecker-Symbole', sym_help: 'Das Symbol eines Weckers wählst du auf der Uhr im Wecker-Menü unter „Symbol“. Hier legst du fest, wo es angezeigt wird.',
+      sym_list: 'In der Wecker-Liste', sym_menu: 'Im Wecker-Menü', sym_ring: 'Beim Klingeln', sym_ha: 'In Home Assistant (als Icon)',
       left_handed: 'Linkshänder-Modus',
       left_handed_hint: 'Einschalten, wenn die Uhr im Linkshänder-Modus läuft (Bildschirm gedreht, Knöpfe links). Die Tasten-Symbole beim Klingeln und bei Rückfragen erscheinen dann links. Die Uhr kann diese Systemeinstellung Apps noch nicht mitteilen.',
       alarms_title: 'Wecker', no_alarms: 'Noch keine Wecker. Wecker legst du auf der Uhr mit „+ NEU“ an.',
@@ -289,6 +316,8 @@
       err_no_state: 'No data from the watch yet. Is WristWake open on the watch?',
       err_watch: 'Watch not reachable. Is WristWake open on the watch?',
       watch_title: 'Watch', watch_name: 'Watch name', watch_name_hint: 'Used as the device name in Home Assistant.',
+      sym_title: 'Alarm symbols', sym_help: 'Choose the symbol of an alarm on the watch in the alarm menu under “Symbol”. Here you set where it is shown.',
+      sym_list: 'In the alarm list', sym_menu: 'In the alarm menu', sym_ring: 'When ringing', sym_ha: 'In Home Assistant (as icon)',
       left_handed: 'Left-handed mode',
       left_handed_hint: 'Turn on if the watch runs in left-handed mode (screen rotated, buttons on the left). The button symbols when ringing and in confirmations then appear on the left. The watch cannot pass this system setting to apps yet.',
       alarms_title: 'Alarms', no_alarms: 'No alarms yet. Create alarms on the watch with “+ NEW”.',
@@ -534,10 +563,11 @@
   }
 
   var sunToday = null;   // today's sunrise/sunset from the phone {rise, set}
+  // Today's resulting times, shown in the rows themselves
   function renderSunToday() {
     if (schedMode() !== 2 || !sunToday) return;
-    setStatus($('sun-today'), t('sun_today').replace('{d}', toTime(sunToday.rise + offsetOf('day')))
-                                             .replace('{n}', toTime(sunToday.set + offsetOf('night'))));
+    $('day-sun').textContent = toTime(sunToday.rise + offsetOf('day'));
+    $('night-sun').textContent = toTime(sunToday.set + offsetOf('night'));
   }
   function loadSunToday() {
     if (sunToday || !hasBridge()) return renderSunToday();
@@ -676,6 +706,9 @@
   function render() {
     $('watch-name').value = state.wn || '';
     $('left-handed').checked = !!state.lh;
+    var sf = state.sf === undefined ? 15 : state.sf;
+    $('sym-list').checked = !!(sf & 1); $('sym-menu').checked = !!(sf & 2);
+    $('sym-ring').checked = !!(sf & 4); $('sym-ha').checked = !!(sf & 8);
     $('version').textContent = state.v ? 'WristWake ' + state.v : '';
     if (state.tc && state.tc.length === 4) colors = state.tc.slice();
     $('theme').value = String(state.th === undefined ? 3 : state.th);
@@ -713,6 +746,8 @@
       theme: currentTheme(), colors: colors.slice(), names: names,
       watch_name: $('watch-name').value.trim() || 'Pebble',
       left_handed: $('left-handed').checked,
+      symbol_flags: ($('sym-list').checked ? 1 : 0) | ($('sym-menu').checked ? 2 : 0) |
+                    ($('sym-ring').checked ? 4 : 0) | ($('sym-ha').checked ? 8 : 0),
       schedule: { mode: schedMode(), night: nightTheme(), day: fromTime($('day-time').value),
                   night_time: fromTime($('night-time').value), day_offset: offsetOf('day'),
                   night_offset: offsetOf('night') }

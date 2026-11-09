@@ -6,6 +6,8 @@
 #include "vibe_menu.h"
 #include "volume_menu.h"
 #include "challenge_menu.h"
+#include "symbol_menu.h"
+#include "symbols.h"
 #include "i18n.h"
 
 // Day presets; "Custom" opens the checkbox list
@@ -19,6 +21,7 @@ enum {
   ROW_TIME,
   ROW_DAYS,
   ROW_NAME,
+  ROW_SYMBOL,    // symbol shown in the list, menu header, ringing screen and Home Assistant
   ROW_SOUND,
   ROW_VOLUME,
   ROW_VIBRATION,
@@ -194,7 +197,13 @@ static void prv_draw_header(GContext *ctx, const Layer *cell, uint16_t s, void *
   ui_format_time(time_buf, sizeof(time_buf), a->hour, a->minute, false, &ampm);
   snprintf(s_header, sizeof(s_header), "%s%s%s  %s", time_buf, ampm ? " " : "", ampm ? ampm : "",
            a->name[0] ? a->name : "");
-  ui_draw_header_bar(ctx, b, s_header, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), -3);
+  int text_x = 8;
+  if (a->symbol && symbols_show(SYMBOL_SHOW_MENU)) text_x += SYMBOL_SMALL + 4;
+  ui_draw_header_bar_at(ctx, b, s_header, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), text_x, -3);
+  if (text_x > 8) {
+    symbol_draw(ctx, a->symbol, GPoint(8, (b.size.h - 2 - SYMBOL_SMALL) / 2), false, theme()->header_bg,
+                ui_header_fg());
+  }
 }
 
 static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, void *c) {
@@ -231,6 +240,10 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
     case ROW_NAME:
       title = TR("Change Name", "Name ändern");
       subtitle = a->name[0] ? a->name : TR("(none)", "(kein Name)");
+      break;
+    case ROW_SYMBOL:
+      title = TR("Symbol", "Symbol");
+      subtitle = symbol_name(a->symbol);
       break;
     case ROW_SOUND:
       title = TR("Sound", "Ton");
@@ -273,7 +286,8 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
   bool greyed = (index->row == ROW_DELETE && a->protect) ||
                 (index->row == ROW_SNOOZE && a->challenge != CHALLENGE_OFF);
 
-  int text_w = b.size.w - 16 - (toggle >= 0 ? UI_TOGGLE_W + 10 : 0);
+  bool show_symbol = index->row == ROW_SYMBOL && a->symbol;
+  int text_w = b.size.w - 16 - (toggle >= 0 ? UI_TOGGLE_W + 10 : 0) - (show_symbol ? SYMBOL_LARGE + 6 : 0);
   const Theme *t = theme();
   graphics_context_set_text_color(ctx, greyed ? (hl ? t->hl_dim : t->dim) : (hl ? t->hl_fg : t->fg));
   // All menu items in the same font size; details below slightly smaller and not bold,
@@ -293,6 +307,10 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
   if (toggle >= 0) {
     ui_draw_toggle(ctx, GPoint(b.size.w - UI_TOGGLE_W - 10, (b.size.h - UI_TOGGLE_H) / 2),
                    toggle, hl);
+  }
+  if (show_symbol) {
+    symbol_draw(ctx, a->symbol, GPoint(b.size.w - SYMBOL_LARGE - 10, (b.size.h - SYMBOL_LARGE) / 2), true,
+                hl ? t->hl_bg : t->bg, hl ? t->hl_fg : t->fg);
   }
 }
 
@@ -320,6 +338,9 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
       break;
     case ROW_NAME:
       prv_start_dictation();
+      break;
+    case ROW_SYMBOL:
+      symbol_menu_show(s_slot);  // all symbols with their pictures
       break;
     case ROW_SOUND:
       option_picker_show(TR("Sound", "Ton"), s_sound_labels, ALARM_SOUND_COUNT,

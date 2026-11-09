@@ -23,6 +23,7 @@ Features:
 - up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
 - 18 ringtones, including 5 rising ones, each with 4 volume levels
 - vibration patterns, with or without a ringtone
+- a symbol per alarm (sun, moon, work, sport and more), shown in the list, when ringing and in Home Assistant
 - snooze off: only holding the bottom button stops the alarm
 - wake-up challenge: repeat a random button sequence (Follow) or guess and remember it (Remember) before the alarm stops
 - 10 color presets or your own colors, optionally a second scheme for darkness (fixed times or by sunrise and sunset)

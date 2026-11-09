@@ -3,6 +3,7 @@
 #include "scheduler.h"
 #include "theme.h"
 #include "ring.h"
+#include "symbols.h"
 #include "alert.h"
 #include "i18n.h"
 
@@ -15,7 +16,7 @@
 #define HA_CHUNKS 4
 #define HA_CHUNK_LEN 250      // characters per chunk (persist strings hold at most 256 bytes)
 #define HA_BUF_SIZE (HA_CHUNKS * HA_CHUNK_LEN + 1)
-#define STATE_BUF_SIZE 3000
+#define STATE_BUF_SIZE 3300
 #define NAME_SEPARATOR '\x1f' // separates names in the NAMES field
 
 static const char *const STATUS_KEYS[] = {"idle", "ringing", "snoozed", "dismissed"};
@@ -102,10 +103,11 @@ static void prv_build_state(void) {
          g_lang_de ? "de" : "en", (long)time(NULL), STATUS_KEYS[s_status], s_status_slot);
   ThemeSchedule ts = theme_schedule();
   // "hb": the watch keeps a copy of the Home Assistant connection
-  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"a\":[",
+  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"sf\":%d,\"a\":[",
          theme_mode(), tc.bg.argb, tc.fg.argb, tc.hl_bg.argb, tc.hl_fg.argb,
          theme_left_handed() ? 1 : 0, ts.mode, ts.night, ts.day_min, ts.night_min,
-         ts.day_offset, ts.night_offset, s_ha[0] ? 1 : 0);
+         ts.day_offset, ts.night_offset, s_ha[0] ? 1 : 0,
+         symbols_flags());
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     const Alarm *a = store_get(slot);
     if (slot > 1) APPEND(",");
@@ -118,9 +120,9 @@ static void prv_build_state(void) {
     APPEND(",\"h\":%d,\"m\":%d,\"d\":%d,\"e\":%d,\"so\":\"%s\",\"vi\":%d,\"p\":\"%s\"",
            a->hour, a->minute, a->days, a->enabled, alarm_sound_key(a->sound), a->vibrate,
            alarm_vibe_key(a->vibe_pattern));
-    APPEND(",\"z\":%d,\"pr\":%d,\"vo\":\"%s\",\"ch\":\"%s\",\"cl\":%d,\"cp\":%d,\"rl\":%d,\"r\":%lu,\"nx\":%ld}", a->snooze,
+    APPEND(",\"z\":%d,\"pr\":%d,\"vo\":\"%s\",\"ch\":\"%s\",\"cl\":%d,\"cp\":%d,\"rl\":%d,\"sy\":\"%s\",\"r\":%lu,\"nx\":%ld}", a->snooze,
            a->protect, alarm_volume_key(a->volume), alarm_challenge_key(a->challenge),
-           a->challenge_len, CHALLENGE_PAUSES_MS[a->challenge_pause], a->remember_len,
+           a->challenge_len, CHALLENGE_PAUSES_MS[a->challenge_pause], a->remember_len, symbol_key(a->symbol),
            (unsigned long)a->rev, (long)scheduler_next_time(slot));
   }
   APPEND("]}");
@@ -226,7 +228,7 @@ static void prv_start_test(int slot) {
     ch.length = a->challenge == CHALLENGE_REMEMBER ? a->remember_len : a->challenge_len;
     ch.pause_ms = CHALLENGE_PAUSES_MS[a->challenge_pause];
   }
-  ring_show_test(&p, !(used && a->snooze == 0), &ch);
+  ring_show_test(&p, !(used && a->snooze == 0), &ch, used ? a->symbol : SYMBOL_NONE);
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {
@@ -292,6 +294,14 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   }
   store_batch_end();
 
+  if ((t = dict_find(iter, MESSAGE_KEY_SYMBOL_FLAGS))) {
+    uint8_t flags = (uint8_t)t->value->int32;
+    if (flags != symbols_flags()) {
+      symbols_set_flags(flags);
+      theme_changed = true;   // redraw list and menus
+    }
+    changed = true;
+  }
   if ((t = dict_find(iter, MESSAGE_KEY_HA_CONFIG)) && t->type == TUPLE_CSTRING) {
     prv_ha_save(t->value->cstring);   // empty = connection removed
     changed = true;

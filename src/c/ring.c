@@ -1,4 +1,5 @@
 #include "ring.h"
+#include "symbols.h"
 #include "alarm_store.h"
 #include "scheduler.h"
 #include "alert.h"
@@ -39,6 +40,7 @@ static bool s_test;
 static AlertParams s_test_params;
 static bool s_test_can_snooze;
 static RingChallenge s_test_challenge;
+static int s_test_symbol;
 
 static uint8_t s_challenge[CHALLENGE_LEN_MAX];
 static int s_challenge_len;          // number of buttons of the running challenge
@@ -108,6 +110,16 @@ static void prv_build_names(void) {
     shown++;
   }
   if (!shown) snprintf(s_names, sizeof(s_names), "%s", TR("Alarm", "Wecker"));
+}
+
+// Symbol of the ringing alarms: the first one that has a symbol (0 = none)
+static int prv_symbol(void) {
+  if (s_test) return s_test_symbol;
+  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
+    const Alarm *a = store_get(slot);
+    if (prv_in_mask(slot) && a->used && a->symbol) return a->symbol;
+  }
+  return SYMBOL_NONE;
 }
 
 // Sound/vibration from the settings of the ringing alarms
@@ -377,10 +389,17 @@ static void prv_draw(Layer *layer, GContext *ctx) {
                        GRect(cx0, 76, content_w, 22), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
   }
 
-  // name(s)
+  // symbol (if any) and name(s)
+  int name_y = 98;
+  int symbol = symbols_show(SYMBOL_SHOW_RING) ? prv_symbol() : SYMBOL_NONE;
+  if (symbol) {
+    int sy = ampm ? 98 : 72;
+    symbol_draw(ctx, symbol, GPoint(cx0 + (content_w - SYMBOL_LARGE) / 2, sy), true, t->bg, t->fg);
+    name_y = sy + SYMBOL_LARGE + 2;
+  }
   graphics_draw_text(ctx, s_names, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
-                     GRect(cx0 + 6, 98, content_w - 12, 64), GTextOverflowModeTrailingEllipsis,
-                     GTextAlignmentCenter, NULL);
+                     GRect(cx0 + 6, name_y, content_w - 12, b.size.h - 44 - name_y),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // hints at the bottom
   graphics_context_set_text_color(ctx, t->dim);
@@ -598,12 +617,13 @@ static void prv_open_window(void) {
   prv_start_alert();
 }
 
-void ring_show_test(const AlertParams *params, bool can_snooze, const RingChallenge *challenge) {
+void ring_show_test(const AlertParams *params, bool can_snooze, const RingChallenge *challenge, int symbol) {
   if (s_window && !s_test && s_state != RING_DONE) return;  // a real alarm has priority
   if (s_window) window_stack_remove(s_window, false);
   s_test_params = *params;
   s_test_can_snooze = can_snooze;
   s_test_challenge = *challenge;
+  s_test_symbol = symbol;
   s_mask = 0;
   s_test = true;
   prv_open_window();

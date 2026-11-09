@@ -1,4 +1,5 @@
 #include "alarm_list.h"
+#include "symbols.h"
 #include "alarm_store.h"
 #include "alarm_menu.h"
 #include "time_picker.h"
@@ -93,10 +94,16 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
   }
   ui_draw_toggle(ctx, GPoint(b.size.w - UI_TOGGLE_W - 8, 14), a->enabled, hl);
 
-  // Line 2: name on the left, weekdays on the right
+  // Line 2: (symbol and) name on the left, weekdays on the right
+  int name_x = 8;
+  if (a->symbol && symbols_show(SYMBOL_SHOW_LIST)) {
+    symbol_draw(ctx, a->symbol, GPoint(8, 44), false, hl ? t->hl_bg : t->bg, hl ? t->hl_fg : t->fg);
+    name_x += SYMBOL_SMALL + 4;
+  }
+  graphics_context_set_text_color(ctx, main_color);
   graphics_draw_text(ctx, a->name[0] ? a->name : TR("Alarm", "Wecker"),
                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                     GRect(8, 40, b.size.w - DAYS_W - 18, 22), GTextOverflowModeTrailingEllipsis,
+                     GRect(name_x, 40, b.size.w - DAYS_W - 10 - name_x, 22), GTextOverflowModeTrailingEllipsis,
                      GTextAlignmentLeft, NULL);
   ui_draw_day_letters(ctx, GRect(b.size.w - DAYS_W - 6, 43, DAYS_W, 18), a->days, hl, off);
 }

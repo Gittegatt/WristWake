@@ -117,6 +117,7 @@ typedef struct {
   uint8_t challenge_pause;     // Follow: index into CHALLENGE_PAUSES_MS, since schema 9
   uint8_t remember_len;        // Remember: number of boxes, since schema 10
   uint8_t last_sound;          // last sound other than Off (for volume "Off" -> level), since schema 11
+  uint8_t symbol;              // symbols.h, 0 = none, since schema 12
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).

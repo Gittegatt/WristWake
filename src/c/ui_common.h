@@ -55,5 +55,8 @@ void ui_style_menu(MenuLayer *menu);
 
 // Header: area in header color with the title on the left
 void ui_draw_header_bar(GContext *ctx, GRect bounds, const char *title, GFont font, int text_y);
+// Same with the text starting at text_x (e.g. after a symbol)
+void ui_draw_header_bar_at(GContext *ctx, GRect bounds, const char *title, GFont font, int text_x,
+                           int text_y);
 // Header text color (matching ui_draw_header_bar)
 GColor ui_header_fg(void);
