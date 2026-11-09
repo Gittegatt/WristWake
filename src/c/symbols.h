@@ -23,6 +23,8 @@ bool symbols_show(uint8_t where);
 
 const char *symbol_key(int symbol);    // language neutral, e.g. "sun" ("none" for 0)
 const char *symbol_name(int symbol);   // display name in the watch language
+// Display order of the picker: index 0 = none, then by tile color (red, orange, ... violet, grey)
+int symbol_at(int index);
 
 // Draws the symbol with its top left corner at origin. bg = color behind it: if it equals
 // the tile color, a thin frame in frame_color keeps the tile visible.

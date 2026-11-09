@@ -39,11 +39,13 @@ static const SymbolInfo SYMBOLS[SYMBOL_COUNT - 1] = {
   {"food", "Food", "Essen", 0xAA5555, RESOURCE_ID_SYM_FOOD_S, RESOURCE_ID_SYM_FOOD_L},
   {"water", "Water", "Wasser", 0x0055FF, RESOURCE_ID_SYM_WATER_S, RESOURCE_ID_SYM_WATER_L},
   {"calendar", "Calendar", "Kalender", 0xAA0055, RESOURCE_ID_SYM_CALENDAR_S, RESOURCE_ID_SYM_CALENDAR_L},
-  {"star", "Star", "Stern", 0xFFAA55, RESOURCE_ID_SYM_STAR_S, RESOURCE_ID_SYM_STAR_L},
+  {"star", "Star", "Stern", 0xFFFF00, RESOURCE_ID_SYM_STAR_S, RESOURCE_ID_SYM_STAR_L},
   {"music", "Music", "Musik", 0x5500AA, RESOURCE_ID_SYM_MUSIC_S, RESOURCE_ID_SYM_MUSIC_L},
   {"important", "Important", "Wichtig", 0xFF0000, RESOURCE_ID_SYM_IMPORTANT_S, RESOURCE_ID_SYM_IMPORTANT_L},
   {"question", "Question", "Frage", 0xFF5500, RESOURCE_ID_SYM_QUESTION_S, RESOURCE_ID_SYM_QUESTION_L},
 };
+
+static const uint8_t ORDER[SYMBOL_COUNT - 1] = {16, 24, 29, 30, 8, 5, 1, 2, 15, 27, 23, 9, 20, 22, 12, 14, 6, 21, 25, 13, 3, 4, 28, 7, 18, 10, 26, 19, 11, 17};
 
 static uint8_t s_flags = SYMBOL_SHOW_ALL;
 static GBitmap *s_small[SYMBOL_COUNT];   // loaded on first use (a few hundred bytes each)
@@ -74,6 +76,10 @@ const char *symbol_key(int symbol) {
 const char *symbol_name(int symbol) {
   if (symbol <= 0 || symbol >= SYMBOL_COUNT) return TR("None", "Kein Symbol");
   return TR(SYMBOLS[symbol - 1].en, SYMBOLS[symbol - 1].de);
+}
+
+int symbol_at(int index) {
+  return index > 0 && index < SYMBOL_COUNT ? ORDER[index - 1] : SYMBOL_NONE;
 }
 
 static GBitmap *prv_bitmap(int symbol, bool large) {

@@ -10,37 +10,10 @@
 static Window *s_window;
 static MenuLayer *s_menu;
 static int s_slot;
-static uint8_t s_order[SYMBOL_COUNT];   // display order: "None" first, then A-Z in the watch language
-
-// Sort key: lower case, German umlauts as their base letter (names are short)
-static void prv_sort_key(const char *name, char *out, size_t size) {
-  size_t n = 0;
-  for (const unsigned char *p = (const unsigned char *)name; *p && n + 1 < size; p++) {
-    if (p[0] == 0xC3 && p[1]) {
-      unsigned char c = p[1];
-      out[n++] = (c == 0xA4 || c == 0x84) ? 'a' : (c == 0xB6 || c == 0x96) ? 'o' : (c == 0xBC || c == 0x9C) ? 'u' : 's';
-      p++;
-    } else {
-      out[n++] = (*p >= 'A' && *p <= 'Z') ? *p + 32 : *p;
-    }
-  }
-  out[n] = '\0';
-}
+static uint8_t s_order[SYMBOL_COUNT];   // display order: "None" first, then by color
 
 static void prv_sort(void) {
-  s_order[0] = SYMBOL_NONE;
-  for (int i = 1; i < SYMBOL_COUNT; i++) {
-    char key[24], other[24];
-    prv_sort_key(symbol_name(i), key, sizeof(key));
-    int j = i;
-    while (j > 1) {
-      prv_sort_key(symbol_name(s_order[j - 1]), other, sizeof(other));
-      if (strcmp(key, other) >= 0) break;
-      s_order[j] = s_order[j - 1];
-      j--;
-    }
-    s_order[j] = i;
-  }
+  for (int i = 0; i < SYMBOL_COUNT; i++) s_order[i] = symbol_at(i);   // "None" first, then by color
 }
 
 static const Alarm *prv_alarm(void) {
