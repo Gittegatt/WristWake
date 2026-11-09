@@ -254,14 +254,12 @@
     </div>
     <div id="custom" class="hidden"></div>
     <div class="component" id="preview-wrap"><p id="preview-label" class="preview-label"></p>
-      <div id="preview" class="preview"></div>
       <div id="shots" class="shots">
         <canvas id="shot-list" width="200" height="228"></canvas>
         <canvas id="shot-menu" width="200" height="228"></canvas>
       </div>
     </div>
     <div class="component hidden" id="preview-night-wrap"><p class="preview-label" data-t="preview_night"></p>
-      <div id="preview-night" class="preview"></div>
       <div id="shots-night" class="shots">
         <canvas id="shot-list-night" width="200" height="228"></canvas>
         <canvas id="shot-menu-night" width="200" height="228"></canvas>
@@ -629,15 +627,6 @@
          : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
   }
 
-  // Color bars of one preview (normal and selected row)
-  function renderBars(box, c) {
-    box.innerHTML = '<div></div><div></div>';
-    box.children[0].textContent = t('preview_normal');
-    box.children[0].style.background = displayColor(c[0]); box.children[0].style.color = displayColor(c[1]);
-    box.children[1].textContent = t('preview_sel');
-    box.children[1].style.background = displayColor(c[2]); box.children[1].style.color = displayColor(c[3]);
-  }
-
   // Daylight preview always; with a daylight/darkness switch also the darkness preview below it
   function renderPreview() {
     var day = currentTheme();
@@ -645,13 +634,11 @@
     $('theme-label').textContent = select.options[select.selectedIndex].textContent;
     $('custom').classList.toggle('hidden', day !== 2 && !(schedMode() && nightTheme() === 2));
     $('preview-label').textContent = schedMode() ? t('preview_day') : '';
-    renderBars($('preview'), baseColors(day));
     renderShots(roleColors(day, baseColors(day)), '');
     var withNight = schedMode() !== 0;
     $('preview-night-wrap').classList.toggle('hidden', !withNight);
     if (withNight) {
       var night = nightTheme();
-      renderBars($('preview-night'), baseColors(night));
       renderShots(roleColors(night, baseColors(night)), '-night');
     }
   }
