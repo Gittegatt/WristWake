@@ -381,7 +381,8 @@
   var bridge = hasBridge();
   var state = null, haInfo = null;
   // Custom 1 and Custom 2, GColor8 (argb) each: background, text, selection, selection text
-  var colors = [[0xFF, 0xC0, 0xC0, 0xFF], [0xFF, 0xC0, 0xC0, 0xFF]];
+  // start colors like CUSTOM_DEFAULTS in theme.c: daylight yellow/orange, darkness dark blue
+  var colors = [[0xFE, 0xC0, 0xF8, 0xC0], [0xC1, 0xFF, 0xF4, 0xC0]];
   var CUSTOM_THEMES = [2, 11];   // THEME_CUSTOM, THEME_CUSTOM_2 on the watch
   var COLOR_KEYS = ['c_bg', 'c_fg', 'c_hlbg', 'c_hlfg'];
 

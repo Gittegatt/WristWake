@@ -13,6 +13,13 @@ static bool s_left_handed;
 static ThemeMode s_mode = THEME_CERULEAN;
 static ThemeBase s_custom[THEME_CUSTOM_COUNT];
 static const uint32_t CUSTOM_KEYS[THEME_CUSTOM_COUNT] = {KEY_THEME_CUSTOM, KEY_THEME_CUSTOM2};
+// Start colors (GColor8: bg, fg, hl_bg, hl_fg), same in src/config/index.html:
+// Custom 1 for daylight: pastel yellow, black text, orange selection;
+// Custom 2 for darkness: dark blue, white text, orange selection
+static const uint8_t CUSTOM_DEFAULTS[THEME_CUSTOM_COUNT][4] = {
+  {0xFE, 0xC0, 0xF8, 0xC0},
+  {0xC1, 0xFF, 0xF4, 0xC0},
+};
 static ThemeSchedule s_sched = {.mode = THEME_SCHED_OFF, .night = THEME_CERULEAN_NIGHT,
                                 .day_min = 7 * 60, .night_min = 21 * 60};
 static ThemeMode s_active;   // scheme currently shown (day or night)
@@ -24,12 +31,6 @@ typedef struct {
   uint16_t rise_set[2 * THEME_SUN_DAYS];
 } SunTable;
 static SunTable s_sun;
-
-// Light: the original design
-static const ThemeBase LIGHT_BASE = {
-  .bg = {.argb = GColorWhiteARGB8}, .fg = {.argb = GColorBlackARGB8},
-  .hl_bg = {.argb = GColorBlackARGB8}, .hl_fg = {.argb = GColorWhiteARGB8},
-};
 
 // Mixes two colors. weight_a = share of a in thirds (0-3).
 // The watch has 4 levels per color channel, so thirds are enough.
@@ -220,21 +221,38 @@ void theme_set_sun_table(uint16_t first_day, const uint8_t *rise_set, int count)
 void theme_init(void) {
   int32_t mode = persist_exists(KEY_THEME_MODE) ? persist_read_int(KEY_THEME_MODE) : THEME_CERULEAN;
   s_mode = (mode >= 0 && mode < THEME_MODE_COUNT) ? (ThemeMode)mode : THEME_CERULEAN;
+  // Before Custom 2 existed there was only one custom scheme: it becomes Custom 2 (with the
+  // same look, also where it is selected), Custom 1 gets the new daylight start colors.
+  bool move_old = persist_exists(KEY_THEME_CUSTOM) && !persist_exists(KEY_THEME_CUSTOM2);
+  uint8_t raw[THEME_CUSTOM_COUNT][4];
   for (int i = 0; i < THEME_CUSTOM_COUNT; i++) {
-    s_custom[i] = LIGHT_BASE;
-    uint8_t raw[4];
-    if (persist_read_data(CUSTOM_KEYS[i], raw, sizeof(raw)) == (int)sizeof(raw)) {
-      s_custom[i].bg = (GColor) {.argb = raw[0] | 0xC0};
-      s_custom[i].fg = (GColor) {.argb = raw[1] | 0xC0};
-      s_custom[i].hl_bg = (GColor) {.argb = raw[2] | 0xC0};
-      s_custom[i].hl_fg = (GColor) {.argb = raw[3] | 0xC0};
-    }
+    memcpy(raw[i], CUSTOM_DEFAULTS[i], 4);
+    persist_read_data(CUSTOM_KEYS[i], raw[i], 4);
+  }
+  if (move_old) {
+    memcpy(raw[1], raw[0], 4);
+    memcpy(raw[0], CUSTOM_DEFAULTS[0], 4);
+    for (int i = 0; i < THEME_CUSTOM_COUNT; i++) persist_write_data(CUSTOM_KEYS[i], raw[i], 4);
+  }
+  for (int i = 0; i < THEME_CUSTOM_COUNT; i++) {
+    s_custom[i] = (ThemeBase) {
+      .bg = {.argb = raw[i][0] | 0xC0}, .fg = {.argb = raw[i][1] | 0xC0},
+      .hl_bg = {.argb = raw[i][2] | 0xC0}, .hl_fg = {.argb = raw[i][3] | 0xC0},
+    };
   }
   s_left_handed = persist_exists(KEY_LEFT_HANDED) && persist_read_bool(KEY_LEFT_HANDED);
   ThemeSchedule sched;
   if (persist_read_data(KEY_THEME_SCHED, &sched, sizeof(sched)) == (int)sizeof(sched)) {
     prv_sanitize_schedule(&sched);
     s_sched = sched;
+  }
+  if (move_old && s_mode == THEME_CUSTOM) {
+    s_mode = THEME_CUSTOM_2;
+    persist_write_int(KEY_THEME_MODE, s_mode);
+  }
+  if (move_old && s_sched.night == THEME_CUSTOM) {
+    s_sched.night = THEME_CUSTOM_2;
+    persist_write_data(KEY_THEME_SCHED, &s_sched, sizeof(s_sched));
   }
   if (persist_read_data(KEY_THEME_SUN, &s_sun, sizeof(s_sun)) != (int)sizeof(s_sun) ||
       s_sun.count > THEME_SUN_DAYS) {
