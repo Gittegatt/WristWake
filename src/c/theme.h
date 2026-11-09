@@ -1,5 +1,5 @@
 #pragma once
-// UI color schemes: presets, Light, Dark or Custom (4 base colors from the phone,
+// UI color schemes: presets, Light, Dark or Custom 1/2 (4 base colors each from the phone,
 // in-between shades are derived from them).
 // The scheme is stored on the watch and selected on the phone.
 #include <pebble.h>
@@ -7,7 +7,7 @@
 typedef enum {
   THEME_LIGHT = 0,
   THEME_DARK = 1,
-  THEME_CUSTOM = 2,
+  THEME_CUSTOM = 2,       // "Custom 1"
   THEME_CERULEAN = 3,     // "Cerulean Blue": white, black text, blue selection (default)
   // More presets; colors in theme.c, PRESETS. Numbers are persisted: only append.
   THEME_CERULEAN_NIGHT = 4,
@@ -17,10 +17,11 @@ typedef enum {
   THEME_BERRY = 8,
   THEME_LAVENDER = 9,
   THEME_MINT = 10,
+  THEME_CUSTOM_2 = 11,    // "Custom 2", e.g. for darkness
   THEME_MODE_COUNT
 } ThemeMode;
 
-// The 4 base colors for Custom
+// The 4 base colors of a custom scheme
 typedef struct {
   GColor bg;      // background
   GColor fg;      // text
@@ -45,10 +46,14 @@ const Theme *theme(void);
 
 // Stored (day) scheme; theme() returns the night scheme at night if a schedule is set.
 ThemeMode theme_mode(void);
-ThemeBase theme_custom_base(void);
+#define THEME_CUSTOM_COUNT 2
+// Base colors of Custom 1 (index 0) or Custom 2 (index 1)
+ThemeBase theme_custom_base(int index);
 
-// Stores and activates a scheme. base is only used for THEME_CUSTOM (may be NULL otherwise).
-void theme_set(ThemeMode mode, const ThemeBase *base);
+// Stores and activates the (day) scheme.
+void theme_set(ThemeMode mode);
+// Stores the colors of Custom 1 (index 0) or Custom 2 (index 1) and redraws if it is shown.
+void theme_set_custom(int index, const ThemeBase *base);
 
 // Day/night: a second scheme for the night, switched by fixed times or by the sun.
 typedef enum {

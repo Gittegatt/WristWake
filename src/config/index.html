@@ -219,7 +219,8 @@
           <option value="7">High Contrast</option>
           <option value="0" data-t="light"></option>
           <option value="1" data-t="dark"></option>
-          <option value="2">Custom</option>
+          <option value="2" data-t="custom1"></option>
+          <option value="11" data-t="custom2"></option>
         </select>
       </label>
     </div>
@@ -306,7 +307,7 @@
       alarms_title: 'Wecker', no_alarms: 'Noch keine Wecker. Wecker legst du auf der Uhr mit „+ NEU“ an.',
       name: 'Name',
       alarms_help: 'Uhrzeit, Tage, Ton und Vibration stellst du auf der Uhr im Wecker-Menü ein.',
-      design_title: 'Design', light: 'Hell', dark: 'Dunkel',
+      design_title: 'Design', light: 'Hell', dark: 'Dunkel', custom1: 'Eigene 1', custom2: 'Eigene 2',
       design_day: 'Farbschema Tageslicht', night_label: 'Farbschema Dunkelheit',
       sched_label: 'Wechsel Tageslicht/Dunkelheit', sched_off: 'Aus', sched_times: 'Feste Uhrzeiten', sched_sun: 'Sonnenstand',
       day_from: 'Tageslicht ab', night_from: 'Dunkelheit ab',
@@ -348,7 +349,7 @@
       alarms_title: 'Alarms', no_alarms: 'No alarms yet. Create alarms on the watch with “+ NEW”.',
       name: 'Name',
       alarms_help: 'Set time, days, sound and vibration on the watch in the alarm menu.',
-      design_title: 'Design', light: 'Light', dark: 'Dark',
+      design_title: 'Design', light: 'Light', dark: 'Dark', custom1: 'Custom 1', custom2: 'Custom 2',
       design_day: 'Daylight color scheme', night_label: 'Darkness color scheme',
       sched_label: 'Daylight/darkness switch', sched_off: 'Off', sched_times: 'Fixed times', sched_sun: 'Sun position',
       day_from: 'Daylight from', night_from: 'Darkness from',
@@ -379,7 +380,9 @@
   }
   var bridge = hasBridge();
   var state = null, haInfo = null;
-  var colors = [0xFF, 0xC0, 0xC0, 0xFF];  // GColor8 (argb): white, black, black, white
+  // Custom 1 and Custom 2, GColor8 (argb) each: background, text, selection, selection text
+  var colors = [[0xFF, 0xC0, 0xC0, 0xFF], [0xFF, 0xC0, 0xC0, 0xFF]];
+  var CUSTOM_THEMES = [2, 11];   // THEME_CUSTOM, THEME_CUSTOM_2 on the watch
   var COLOR_KEYS = ['c_bg', 'c_fg', 'c_hlbg', 'c_hlfg'];
 
   function $(id) { return document.getElementById(id); }
@@ -507,7 +510,7 @@
     return '#' + SUNLIGHT[argbToHex(argb)];
   }
 
-  function openColorPicker(index) {
+  function openColorPicker(set, index) {
     var wrap = document.createElement('div');
     wrap.className = 'picker-wrap';
     var picker = document.createElement('div');
@@ -519,11 +522,11 @@
         var box = document.createElement('i');
         if (hex) {
           var argb = hexToArgb(hex);
-          box.className = 'sel' + (argb === colors[index] ? ' selected' : '');
+          box.className = 'sel' + (argb === colors[set][index] ? ' selected' : '');
           box.style.background = '#' + SUNLIGHT[hex];
           box.addEventListener('click', function (ev) {
             ev.stopPropagation();
-            colors[index] = argb;
+            colors[set][index] = argb;
             document.body.removeChild(wrap);
             renderColors();
           });
@@ -537,17 +540,30 @@
     document.body.appendChild(wrap);
   }
 
+  // Color settings for every custom scheme that is used (daylight or darkness)
   function renderColors() {
     var box = $('custom');
     box.innerHTML = '';
-    COLOR_KEYS.forEach(function (key, i) {
-      var row = document.createElement('div');
-      row.className = 'component component-color';
-      row.innerHTML = '<label class="tap-highlight"><span></span><span class="value"></span></label>';
-      row.querySelector('span').textContent = t(key);
-      row.querySelector('.value').style.background = displayColor(colors[i]);
-      row.querySelector('label').addEventListener('click', function () { openColorPicker(i); });
-      box.appendChild(row);
+    var used = CUSTOM_THEMES.filter(function (theme) {
+      return currentTheme() === theme || (schedMode() !== 0 && nightTheme() === theme);
+    });
+    box.classList.toggle('hidden', used.length === 0);
+    used.forEach(function (theme) {
+      var set = CUSTOM_THEMES.indexOf(theme);
+      var label = document.createElement('div');
+      label.className = 'component';
+      label.innerHTML = '<p class="preview-label"></p>';
+      label.firstChild.textContent = t(set ? 'custom2' : 'custom1');
+      box.appendChild(label);
+      COLOR_KEYS.forEach(function (key, i) {
+        var row = document.createElement('div');
+        row.className = 'component component-color';
+        row.innerHTML = '<label class="tap-highlight"><span></span><span class="value"></span></label>';
+        row.querySelector('span').textContent = t(key);
+        row.querySelector('.value').style.background = displayColor(colors[set][i]);
+        row.querySelector('label').addEventListener('click', function () { openColorPicker(set, i); });
+        box.appendChild(row);
+      });
     });
     renderPreview();
   }
@@ -626,7 +642,7 @@
 
   function baseColors(theme) {
     return theme === 1 ? [0xC0, 0xFF, 0xFF, 0xC0]
-         : theme === 2 ? colors
+         : CUSTOM_THEMES.indexOf(theme) >= 0 ? colors[CUSTOM_THEMES.indexOf(theme)]
          : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
   }
 
@@ -635,7 +651,6 @@
     var day = currentTheme();
     var select = $('theme');
     $('theme-label').textContent = select.options[select.selectedIndex].textContent;
-    $('custom').classList.toggle('hidden', day !== 2 && !(schedMode() && nightTheme() === 2));
     $('preview-label').textContent = schedMode() ? t('preview_day') : '';
     renderShots(roleColors(day, baseColors(day)), '');
     var withNight = schedMode() !== 0;
@@ -760,7 +775,8 @@
     $('sym-list').checked = !!(sf & 1); $('sym-menu').checked = !!(sf & 2);
     $('sym-ring').checked = !!(sf & 4); $('sym-ha').checked = !!(sf & 8);
     $('version').textContent = state.v ? 'WristWake ' + state.v : '';
-    if (state.tc && state.tc.length === 4) colors = state.tc.slice();
+    if (state.tc && state.tc.length >= 4) colors[0] = state.tc.slice(0, 4);
+    if (state.tc && state.tc.length >= 8) colors[1] = state.tc.slice(4, 8);
     $('theme').value = String(state.th === undefined ? 3 : state.th);
     // Night scheme: same choices as the day scheme
     $('theme-night').innerHTML = $('theme').innerHTML;
@@ -794,7 +810,7 @@
       names.push(n ? n.value.replace(/[\x1f|]/g, ' ') : (a && a.n) || '');
     }
     return {
-      theme: currentTheme(), colors: colors.slice(), names: names,
+      theme: currentTheme(), colors: colors[0].concat(colors[1]), names: names,
       watch_name: $('watch-name').value.trim() || 'Pebble',
       left_handed: $('left-handed').checked,
       symbol_flags: ($('sym-list').checked ? 1 : 0) | ($('sym-menu').checked ? 2 : 0) |

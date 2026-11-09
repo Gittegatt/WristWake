@@ -2,15 +2,17 @@
 
 // Storage keys (other keys see alarm_store.c: 1-5 and 101-108)
 #define KEY_THEME_MODE   10
-#define KEY_THEME_CUSTOM 11   // 4 bytes: GColor8 of bg, fg, hl_bg, hl_fg
+#define KEY_THEME_CUSTOM 11   // 4 bytes: GColor8 of bg, fg, hl_bg, hl_fg (Custom 1)
 #define KEY_LEFT_HANDED  12
 #define KEY_THEME_SCHED  13   // ThemeSchedule
 #define KEY_THEME_SUN    14   // SunTable
+#define KEY_THEME_CUSTOM2 16  // like KEY_THEME_CUSTOM, for Custom 2 (15 = symbol flags)
 
 static Theme s_theme;
 static bool s_left_handed;
 static ThemeMode s_mode = THEME_CERULEAN;
-static ThemeBase s_custom;
+static ThemeBase s_custom[THEME_CUSTOM_COUNT];
+static const uint32_t CUSTOM_KEYS[THEME_CUSTOM_COUNT] = {KEY_THEME_CUSTOM, KEY_THEME_CUSTOM2};
 static ThemeSchedule s_sched = {.mode = THEME_SCHED_OFF, .night = THEME_CERULEAN_NIGHT,
                                 .day_min = 7 * 60, .night_min = 21 * 60};
 static ThemeMode s_active;   // scheme currently shown (day or night)
@@ -111,11 +113,12 @@ static void prv_apply(ThemeMode mode) {
   s_active = mode;
   switch (mode) {
     case THEME_DARK:   prv_build_dark(); break;
-    case THEME_CUSTOM: prv_build_custom(&s_custom); break;
+    case THEME_CUSTOM: prv_build_custom(&s_custom[0]); break;
+    case THEME_CUSTOM_2: prv_build_custom(&s_custom[1]); break;
     case THEME_CERULEAN: prv_build_preset(&CERULEAN_PRESET); break;
     case THEME_LIGHT:  prv_build_light(); break;
     default:
-      if (mode >= THEME_CERULEAN_NIGHT && mode < THEME_MODE_COUNT) {
+      if (mode >= THEME_CERULEAN_NIGHT && mode <= THEME_MINT) {
         prv_build_preset(&PRESETS[mode - THEME_CERULEAN_NIGHT]);
       } else {
         prv_build_light();
@@ -215,15 +218,17 @@ void theme_set_sun_table(uint16_t first_day, const uint8_t *rise_set, int count)
 }
 
 void theme_init(void) {
-  s_custom = LIGHT_BASE;
   int32_t mode = persist_exists(KEY_THEME_MODE) ? persist_read_int(KEY_THEME_MODE) : THEME_CERULEAN;
   s_mode = (mode >= 0 && mode < THEME_MODE_COUNT) ? (ThemeMode)mode : THEME_CERULEAN;
-  uint8_t raw[4];
-  if (persist_read_data(KEY_THEME_CUSTOM, raw, sizeof(raw)) == (int)sizeof(raw)) {
-    s_custom.bg = (GColor) {.argb = raw[0] | 0xC0};
-    s_custom.fg = (GColor) {.argb = raw[1] | 0xC0};
-    s_custom.hl_bg = (GColor) {.argb = raw[2] | 0xC0};
-    s_custom.hl_fg = (GColor) {.argb = raw[3] | 0xC0};
+  for (int i = 0; i < THEME_CUSTOM_COUNT; i++) {
+    s_custom[i] = LIGHT_BASE;
+    uint8_t raw[4];
+    if (persist_read_data(CUSTOM_KEYS[i], raw, sizeof(raw)) == (int)sizeof(raw)) {
+      s_custom[i].bg = (GColor) {.argb = raw[0] | 0xC0};
+      s_custom[i].fg = (GColor) {.argb = raw[1] | 0xC0};
+      s_custom[i].hl_bg = (GColor) {.argb = raw[2] | 0xC0};
+      s_custom[i].hl_fg = (GColor) {.argb = raw[3] | 0xC0};
+    }
   }
   s_left_handed = persist_exists(KEY_LEFT_HANDED) && persist_read_bool(KEY_LEFT_HANDED);
   ThemeSchedule sched;
@@ -259,18 +264,21 @@ ThemeMode theme_mode(void) {
   return s_mode;
 }
 
-ThemeBase theme_custom_base(void) {
-  return s_custom;
+ThemeBase theme_custom_base(int index) {
+  return s_custom[index == 1 ? 1 : 0];
 }
 
-void theme_set(ThemeMode mode, const ThemeBase *base) {
+void theme_set(ThemeMode mode) {
   if (mode >= THEME_MODE_COUNT) mode = THEME_LIGHT;
   s_mode = mode;
   persist_write_int(KEY_THEME_MODE, mode);
-  if (mode == THEME_CUSTOM && base) {
-    s_custom = *base;
-    uint8_t raw[4] = {base->bg.argb, base->fg.argb, base->hl_bg.argb, base->hl_fg.argb};
-    persist_write_data(KEY_THEME_CUSTOM, raw, sizeof(raw));
-  }
+  prv_apply(prv_wanted_mode());
+}
+
+void theme_set_custom(int index, const ThemeBase *base) {
+  if (index < 0 || index >= THEME_CUSTOM_COUNT || !base) return;
+  s_custom[index] = *base;
+  uint8_t raw[4] = {base->bg.argb, base->fg.argb, base->hl_bg.argb, base->hl_fg.argb};
+  persist_write_data(CUSTOM_KEYS[index], raw, sizeof(raw));
   prv_apply(prv_wanted_mode());
 }

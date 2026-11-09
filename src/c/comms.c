@@ -94,7 +94,7 @@ static size_t prv_append_str(size_t len, const char *text) {
 static void prv_build_state(void) {
   size_t len = 0;
   s_state[0] = '\0';
-  ThemeBase tc = theme_custom_base();
+  ThemeBase tc = theme_custom_base(0), tc2 = theme_custom_base(1);
   APPEND("{\"v\":\"%s\",\"id\":", APP_VERSION);
   len = prv_append_str(len, store_watch_id());
   APPEND(",\"wn\":");
@@ -103,8 +103,10 @@ static void prv_build_state(void) {
          g_lang_de ? "de" : "en", (long)time(NULL), STATUS_KEYS[s_status], s_status_slot);
   ThemeSchedule ts = theme_schedule();
   // "hb": the watch keeps a copy of the Home Assistant connection
-  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"sf\":%d,\"a\":[",
+  // "tc": base colors of Custom 1 and Custom 2
+  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d,%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"sf\":%d,\"a\":[",
          theme_mode(), tc.bg.argb, tc.fg.argb, tc.hl_bg.argb, tc.hl_fg.argb,
+         tc2.bg.argb, tc2.fg.argb, tc2.hl_bg.argb, tc2.hl_fg.argb,
          theme_left_handed() ? 1 : 0, ts.mode, ts.night, ts.day_min, ts.night_min,
          ts.day_offset, ts.night_offset, s_ha[0] ? 1 : 0,
          symbols_flags());
@@ -248,19 +250,25 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
 
   store_batch_begin();
   if ((t = dict_find(iter, MESSAGE_KEY_THEME))) {
-    ThemeBase base = theme_custom_base();
+    // Colors: 4 bytes for Custom 1, optionally 4 more for Custom 2
     Tuple *c = dict_find(iter, MESSAGE_KEY_THEME_COLORS);
-    if (c && c->type == TUPLE_BYTE_ARRAY && c->length >= 4) {
-      const uint8_t *d = (const uint8_t *)c->value;
-      base.bg = (GColor) {.argb = d[0] | 0xC0};
-      base.fg = (GColor) {.argb = d[1] | 0xC0};
-      base.hl_bg = (GColor) {.argb = d[2] | 0xC0};
-      base.hl_fg = (GColor) {.argb = d[3] | 0xC0};
+    int sets = (c && c->type == TUPLE_BYTE_ARRAY) ? c->length / 4 : 0;
+    if (sets > THEME_CUSTOM_COUNT) sets = THEME_CUSTOM_COUNT;
+    for (int i = 0; i < sets; i++) {
+      const uint8_t *d = c->value->data + 4 * i;
+      ThemeBase base = {
+        .bg = {.argb = d[0] | 0xC0}, .fg = {.argb = d[1] | 0xC0},
+        .hl_bg = {.argb = d[2] | 0xC0}, .hl_fg = {.argb = d[3] | 0xC0},
+      };
+      ThemeBase old = theme_custom_base(i);
+      if (memcmp(&old, &base, sizeof(base)) != 0) {
+        theme_set_custom(i, &base);
+        theme_changed = true;
+      }
     }
-    ThemeBase old = theme_custom_base();
     int mode = t->value->int32;
-    if (mode != theme_mode() || memcmp(&old, &base, sizeof(base)) != 0) {
-      theme_set(mode, &base);
+    if (mode != theme_mode()) {
+      theme_set(mode);
       theme_changed = true;
     }
     changed = true;
