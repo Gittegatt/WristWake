@@ -111,7 +111,7 @@
   .sun-time { flex: 1 1 auto; text-align: left; padding-left: 0.5rem; color: #aab1bd; }
   /* Sun rows: label and time on top; on narrow screens the offset controls move to a second line */
   #sched-sun label { flex-wrap: wrap; row-gap: 0.5rem; }
-  #sched-sun .offset { margin-left: auto; flex: none; }
+  #sched-sun .offset { flex: 1 0 100%; }   /* offset on its own line, left-aligned */
   .offset { display: flex; gap: 0.4rem; align-items: center; }
   .offset select { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
              font: inherit; min-height: 2.1rem; padding: 0 0.5rem; }
@@ -206,6 +206,30 @@
   <div class="section" id="design-section">
     <div class="component component-heading"><h4 data-t="design_title"></h4></div>
     <div class="component component-select">
+      <label class="tap-highlight"><span data-t="sched_label"></span>
+        <span class="value" id="sched-label"></span>
+        <select id="sched">
+          <option value="0" data-t="sched_off"></option>
+          <option value="1" data-t="sched_times"></option>
+          <option value="2" data-t="sched_sun"></option>
+        </select>
+      </label>
+    </div>
+    <div id="sched-times">
+      <div class="component"><label><span data-t="day_from"></span><input id="day-time" type="time"></label></div>
+      <div class="component"><label><span data-t="night_from"></span><input id="night-time" type="time"></label>
+        <p id="times-err" class="status err"></p></div>
+    </div>
+    <div id="sched-sun">
+      <div class="component"><label><span data-t="sun_day"></span><span id="day-sun" class="sun-time"></span>
+        <span class="offset"><select id="day-sign"><option value="1">+</option><option value="-1">−</option></select>
+        <select id="day-h"></select>h <select id="day-m"></select>min</span></label></div>
+      <div class="component"><label><span data-t="sun_night"></span><span id="night-sun" class="sun-time"></span>
+        <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
+        <select id="night-h"></select>h <select id="night-m"></select>min</span></label>
+        <p id="sun-today" class="status"></p></div>
+    </div>
+    <div class="component component-select">
       <label class="tap-highlight"><span id="design-label"></span>
         <span class="value" id="theme-label"></span>
         <select id="theme">
@@ -231,16 +255,6 @@
         <canvas id="shot-menu" width="200" height="228"></canvas>
       </div>
     </div>
-    <div class="component component-select">
-      <label class="tap-highlight"><span data-t="sched_label"></span>
-        <span class="value" id="sched-label"></span>
-        <select id="sched">
-          <option value="0" data-t="sched_off"></option>
-          <option value="1" data-t="sched_times"></option>
-          <option value="2" data-t="sched_sun"></option>
-        </select>
-      </label>
-    </div>
     <div id="sched-box" class="hidden">
       <div class="component component-select">
         <label class="tap-highlight"><span data-t="night_label"></span>
@@ -254,20 +268,6 @@
           <canvas id="shot-list-night" width="200" height="228"></canvas>
           <canvas id="shot-menu-night" width="200" height="228"></canvas>
         </div>
-      </div>
-      <div id="sched-times">
-        <div class="component"><label><span data-t="day_from"></span><input id="day-time" type="time"></label></div>
-        <div class="component"><label><span data-t="night_from"></span><input id="night-time" type="time"></label>
-          <p id="times-err" class="status err"></p></div>
-      </div>
-      <div id="sched-sun">
-        <div class="component"><label><span data-t="sun_day"></span><span id="day-sun" class="sun-time"></span>
-          <span class="offset"><select id="day-sign"><option value="1">+</option><option value="-1">−</option></select>
-          <select id="day-h"></select>h <select id="day-m"></select>min</span></label></div>
-        <div class="component"><label><span data-t="sun_night"></span><span id="night-sun" class="sun-time"></span>
-          <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
-          <select id="night-h"></select>h <select id="night-m"></select>min</span></label>
-          <p id="sun-today" class="status"></p></div>
       </div>
     </div>
   </div>
