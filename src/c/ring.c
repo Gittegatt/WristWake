@@ -278,20 +278,18 @@ static void prv_draw(Layer *layer, GContext *ctx) {
                        GRect(8, 14, b.size.w - 16, 30), GTextOverflowModeFill,
                        GTextAlignmentCenter, NULL);
     if (remember) {
-      // Remember: one box per step; "?" until guessed, the current box is outlined
+      // Remember: one box per step; "?" until guessed, the current box is filled
       int slot_w = (b.size.w - 16) / s_challenge_len;
       for (int i = 0; i < s_challenge_len; i++) {
         GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 104);
         if (i == s_challenge_pos) {
-          graphics_context_set_stroke_color(ctx, t->fg);
-          graphics_context_set_stroke_width(ctx, 3);
-          graphics_draw_round_rect(ctx, GRect(c.x - 20, c.y - 24, 40, 48), 8);
-          graphics_context_set_stroke_width(ctx, 1);
+          graphics_context_set_fill_color(ctx, t->hl_bg);   // current box in the selection color
+          graphics_fill_rect(ctx, GRect(c.x - 20, c.y - 24, 40, 48), 8, GCornersAll);
         }
         if (i < s_challenge_pos) {
           prv_draw_symbol(ctx, c, s_challenge[i], 12, t->fg);
         } else {
-          graphics_context_set_text_color(ctx, i == s_challenge_pos ? t->fg : t->dim);
+          graphics_context_set_text_color(ctx, i == s_challenge_pos ? t->hl_fg : t->dim);
           graphics_draw_text(ctx, "?", fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
                              GRect(c.x - 20, c.y - 21, 40, 36), GTextOverflowModeFill,
                              GTextAlignmentCenter, NULL);
