@@ -26,6 +26,6 @@ const char *symbol_name(int symbol);   // display name in the watch language
 // Display order of the picker: index 0 = none, then by tile color (red, orange, ... violet, grey)
 int symbol_at(int index);
 
-// Draws the symbol with its top left corner at origin. bg = color behind it: if it equals
-// the tile color, a thin frame in frame_color keeps the tile visible.
+// Draws the symbol with its top left corner at origin. bg = color behind it: if it is the same
+// or a similar color as the tile, a thin frame in frame_color keeps the tile visible.
 void symbol_draw(GContext *ctx, int symbol, GPoint origin, bool large, GColor bg, GColor frame_color);
