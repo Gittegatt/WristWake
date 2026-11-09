@@ -9,7 +9,7 @@
 #define HEADER_H 28      // same as the alarm menu
 #define ALARM_ROW_H 66   // 3 alarms per page: (228 - 28) / 3
 #define NEW_ROW_H 46
-#define DAYS_W 84        // width of the weekday letters
+#define DAYS_W 77        // width of the weekday letters
 #define ZZ_W 22          // "zZ" (snooze on) left of the toggle
 
 static Window *s_window;
