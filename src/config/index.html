@@ -260,6 +260,13 @@
         <canvas id="shot-menu" width="200" height="228"></canvas>
       </div>
     </div>
+    <div class="component hidden" id="preview-night-wrap"><p class="preview-label" data-t="preview_night"></p>
+      <div id="preview-night" class="preview"></div>
+      <div id="shots-night" class="shots">
+        <canvas id="shot-list-night" width="200" height="228"></canvas>
+        <canvas id="shot-menu-night" width="200" height="228"></canvas>
+      </div>
+    </div>
   </div>
 
   <div class="component component-submit">
@@ -549,7 +556,6 @@
   }
 
   // Day/night switch
-  var previewNight = false;   // preview shows the night scheme (after it was changed)
   function schedMode() { return +$('sched').value || 0; }
   function nightTheme() { return +$('theme-night').value || 0; }
   function toTime(min) { min = ((min % 1440) + 1440) % 1440; return pad(Math.floor(min / 60)) + ':' + pad(min % 60); }
@@ -617,23 +623,37 @@
     validate();
   }
 
+  function baseColors(theme) {
+    return theme === 1 ? [0xC0, 0xFF, 0xFF, 0xC0]
+         : theme === 2 ? colors
+         : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
+  }
+
+  // Color bars of one preview (normal and selected row)
+  function renderBars(box, c) {
+    box.innerHTML = '<div></div><div></div>';
+    box.children[0].textContent = t('preview_normal');
+    box.children[0].style.background = displayColor(c[0]); box.children[0].style.color = displayColor(c[1]);
+    box.children[1].textContent = t('preview_sel');
+    box.children[1].style.background = displayColor(c[2]); box.children[1].style.color = displayColor(c[3]);
+  }
+
+  // Daylight preview always; with a daylight/darkness switch also the darkness preview below it
   function renderPreview() {
-    var night = schedMode() !== 0 && previewNight;
-    var theme = night ? nightTheme() : currentTheme();
-    $('preview-label').textContent = schedMode() ? t(night ? 'preview_night' : 'preview_day') : '';
-    var c = theme === 1 ? [0xC0, 0xFF, 0xFF, 0xC0]
-          : theme === 2 ? colors
-          : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
+    var day = currentTheme();
     var select = $('theme');
     $('theme-label').textContent = select.options[select.selectedIndex].textContent;
-    $('custom').classList.toggle('hidden', currentTheme() !== 2 && !(schedMode() && nightTheme() === 2));
-    var p = $('preview');
-    p.innerHTML = '<div></div><div></div>';
-    p.children[0].textContent = t('preview_normal');
-    p.children[0].style.background = displayColor(c[0]); p.children[0].style.color = displayColor(c[1]);
-    p.children[1].textContent = t('preview_sel');
-    p.children[1].style.background = displayColor(c[2]); p.children[1].style.color = displayColor(c[3]);
-    renderShots(roleColors(theme, c));
+    $('custom').classList.toggle('hidden', day !== 2 && !(schedMode() && nightTheme() === 2));
+    $('preview-label').textContent = schedMode() ? t('preview_day') : '';
+    renderBars($('preview'), baseColors(day));
+    renderShots(roleColors(day, baseColors(day)), '');
+    var withNight = schedMode() !== 0;
+    $('preview-night-wrap').classList.toggle('hidden', !withNight);
+    if (withNight) {
+      var night = nightTheme();
+      renderBars($('preview-night'), baseColors(night));
+      renderShots(roleColors(night, baseColors(night)), '-night');
+    }
   }
 
   // Preview images (main screen and alarm menu) from tools/make_previews.py:
@@ -689,9 +709,10 @@
       return (shotPixels[key] = new Uint8Array(buf));
     });
   }
-  function renderShots(roles) {
-    if (!PREVIEW || typeof DecompressionStream === 'undefined') { $('shots').classList.add('hidden'); return; }
-    var run = ++shotRun;
+  var shotRuns = {};
+  function renderShots(roles, suffix) {
+    if (!PREVIEW || typeof DecompressionStream === 'undefined') { $('shots' + suffix).classList.add('hidden'); return; }
+    var run = shotRuns[suffix] = (shotRuns[suffix] || 0) + 1;
     var table = PREVIEW.sym.map(function (s) {
       var argb = 0xC0;
       if (s[0] < 0) {
@@ -708,8 +729,8 @@
     var l = PREVIEW.img[lang + '_list'] ? lang : 'en';
     ['list', 'menu'].forEach(function (kind) {
       loadShot(l + '_' + kind).then(function (px) {
-        if (run !== shotRun) return;
-        var ctx = $('shot-' + kind).getContext('2d');
+        if (run !== shotRuns[suffix]) return;
+        var ctx = $('shot-' + kind + suffix).getContext('2d');
         var img = ctx.createImageData(PREVIEW.w, PREVIEW.h);
         for (var i = 0; i < px.length; i++) {
           var col = table[px[i]];
@@ -717,7 +738,7 @@
           img.data[i * 4 + 3] = 255;
         }
         ctx.putImageData(img, 0, 0);
-      }).catch(function () { $('shots').classList.add('hidden'); });
+      }).catch(function () { $('shots' + suffix).classList.add('hidden'); });
     });
   }
 
@@ -876,8 +897,8 @@
     call({ type: 'disconnect' }).then(function (reply) { haInfo = reply.ha; renderHa(); });
   });
 
-  $('theme').addEventListener('change', function () { previewNight = false; renderColors(); });
-  $('theme-night').addEventListener('change', function () { previewNight = true; renderSchedule(); renderColors(); });
+  $('theme').addEventListener('change', function () { renderColors(); });
+  $('theme-night').addEventListener('change', function () { renderSchedule(); renderColors(); });
   $('sched').addEventListener('change', function () { renderSchedule(); renderColors(); });
   ['day-time', 'night-time'].forEach(function (id) { $(id).addEventListener('change', validate); });
   ['day-sign', 'day-h', 'day-m', 'night-sign', 'night-h', 'night-m'].forEach(function (id) {
