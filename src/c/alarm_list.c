@@ -10,7 +10,7 @@
 #define ALARM_ROW_H 66   // 3 alarms per page: (228 - 28) / 3
 #define NEW_ROW_H 46
 #define DAYS_W 74        // width of the weekday letters
-#define ZZ_W 18          // "zZ" (snooze on) before the weekdays
+#define ZZ_W 22          // "zZ" (snooze on) right of the time
 
 static Window *s_window;
 static Layer *s_header;
@@ -86,11 +86,19 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
   graphics_context_set_text_color(ctx, main_color);
   graphics_draw_text(ctx, time_buf, time_font, time_rect, GTextOverflowModeFill,
                      GTextAlignmentLeft, NULL);
+  GSize size = graphics_text_layout_get_content_size(time_buf, time_font, time_rect,
+                                                     GTextOverflowModeFill, GTextAlignmentLeft);
+  int after_x = time_rect.origin.x + size.w + 4;   // room right of the time
+  GFont small_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   if (ampm) {
-    GSize size = graphics_text_layout_get_content_size(time_buf, time_font, time_rect,
-                                                       GTextOverflowModeFill, GTextAlignmentLeft);
-    graphics_draw_text(ctx, ampm, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                       GRect(time_rect.origin.x + size.w + 4, 14, 30, 22), GTextOverflowModeFill,
+    graphics_draw_text(ctx, ampm, small_font, GRect(after_x, 14, 30, 22), GTextOverflowModeFill,
+                       GTextAlignmentLeft, NULL);
+    after_x += graphics_text_layout_get_content_size(ampm, small_font, GRect(0, 0, 30, 22),
+                                                     GTextOverflowModeFill, GTextAlignmentLeft).w + 4;
+  }
+  // "zZ" right of the time when snoozing is possible (snooze on, no challenge)
+  if (a->snooze > 0 && a->challenge == CHALLENGE_OFF) {
+    graphics_draw_text(ctx, "zZ", small_font, GRect(after_x, 14, ZZ_W, 22), GTextOverflowModeFill,
                        GTextAlignmentLeft, NULL);
   }
   ui_draw_toggle(ctx, GPoint(b.size.w - UI_TOGGLE_W - 8, 14), a->enabled, hl);
@@ -101,19 +109,11 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
     symbol_draw(ctx, a->symbol, GPoint(8, 44), false, hl ? t->hl_bg : t->bg, hl ? t->hl_fg : t->fg);
     name_x += SYMBOL_SMALL + 4;
   }
-  // "zZ" before "Once"/the weekdays when snoozing is possible (snooze on, no challenge)
-  bool can_snooze = a->snooze > 0 && a->challenge == CHALLENGE_OFF;
-  int zz_w = can_snooze ? ZZ_W : 0;
   graphics_context_set_text_color(ctx, main_color);
   graphics_draw_text(ctx, a->name[0] ? a->name : TR("Alarm", "Wecker"),
                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                     GRect(name_x, 40, b.size.w - DAYS_W - 10 - zz_w - name_x, 22),
+                     GRect(name_x, 40, b.size.w - DAYS_W - 10 - name_x, 22),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  if (can_snooze) {
-    graphics_draw_text(ctx, "zZ", fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-                       GRect(b.size.w - DAYS_W - 6 - zz_w, 43, zz_w, 18), GTextOverflowModeFill,
-                       GTextAlignmentLeft, NULL);
-  }
   ui_draw_day_letters(ctx, GRect(b.size.w - DAYS_W - 6, 43, DAYS_W, 18), a->days, hl, off);
 }
 
