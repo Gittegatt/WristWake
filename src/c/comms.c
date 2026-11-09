@@ -6,6 +6,7 @@
 #include "symbols.h"
 #include "alert.h"
 #include "i18n.h"
+#include "time_picker.h"
 
 #ifndef APP_VERSION
 #define APP_VERSION "?"
@@ -104,12 +105,12 @@ static void prv_build_state(void) {
   ThemeSchedule ts = theme_schedule();
   // "hb": the watch keeps a copy of the Home Assistant connection
   // "tc": base colors of Custom 1 and Custom 2
-  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d,%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"sf\":%d,\"a\":[",
+  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d,%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"hb\":%d,\"sf\":%d,\"ti\":%d,\"a\":[",
          theme_mode(), tc.bg.argb, tc.fg.argb, tc.hl_bg.argb, tc.hl_fg.argb,
          tc2.bg.argb, tc2.fg.argb, tc2.hl_bg.argb, tc2.hl_fg.argb,
          theme_left_handed() ? 1 : 0, ts.mode, ts.night, ts.day_min, ts.night_min,
          ts.day_offset, ts.night_offset, s_ha[0] ? 1 : 0,
-         symbols_flags());
+         symbols_flags(), time_picker_flags());
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     const Alarm *a = store_get(slot);
     if (slot > 1) APPEND(",");
@@ -315,6 +316,10 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   }
   store_batch_end();
 
+  if ((t = dict_find(iter, MESSAGE_KEY_TIME_INPUT))) {
+    time_picker_set_flags((uint8_t)t->value->int32);
+    changed = true;
+  }
   if ((t = dict_find(iter, MESSAGE_KEY_SYMBOL_FLAGS))) {
     uint8_t flags = (uint8_t)t->value->int32;
     if (flags != symbols_flags()) {

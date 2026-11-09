@@ -2,7 +2,10 @@
 #include "ui_common.h"
 #include "i18n.h"
 
+#define KEY_TIME_INPUT 17   // storage key: TIME_INPUT_* flags (other keys see theme.c)
+
 static Window *s_window;
+static int s_flags = -1;   // TIME_INPUT_* flags, -1 = not loaded yet
 static Layer *s_layer;
 static char s_title[32];
 static uint8_t s_hour, s_minute;
@@ -34,7 +37,7 @@ static int s_pan_accum;
 #define ANIM_FRAME_MS 20
 static Layer *s_box_layers[2];
 static int s_anim_field = -1;   // box being animated, -1 = none
-static int s_anim_dir;          // +1 = value increased (new value comes from the top)
+static int s_anim_dir;          // +1 = numbers move down (new value comes from the top)
 static int s_anim_step;
 static uint8_t s_prev_value;    // value shown before the change
 static AppTimer *s_anim_timer;
@@ -158,18 +161,40 @@ static void prv_anim_frame(void *data) {
   prv_redraw();
 }
 
-static void prv_change(int delta) {
-  s_prev_value = (s_field == 0) ? s_hour : s_minute;
-  s_anim_field = s_field;
-  s_anim_dir = delta > 0 ? 1 : -1;
-  s_anim_step = 0;
-  if (!s_anim_timer) s_anim_timer = app_timer_register(ANIM_FRAME_MS, prv_anim_frame, NULL);
+uint8_t time_picker_flags(void) {
+  if (s_flags < 0) {
+    s_flags = persist_exists(KEY_TIME_INPUT) ? (persist_read_int(KEY_TIME_INPUT) & 0x03) : 0;
+  }
+  return (uint8_t)s_flags;
+}
+
+void time_picker_set_flags(uint8_t flags) {
+  s_flags = flags & 0x03;
+  persist_write_int(KEY_TIME_INPUT, s_flags);
+}
+
+// delta: change of the value; motion: direction the numbers roll (+1 down, -1 up)
+static void prv_change_moving(int delta, int motion) {
+  if (time_picker_flags() & TIME_INPUT_NO_ANIM) {
+    s_anim_field = -1;
+  } else {
+    s_prev_value = (s_field == 0) ? s_hour : s_minute;
+    s_anim_field = s_field;
+    s_anim_dir = motion;
+    s_anim_step = 0;
+    if (!s_anim_timer) s_anim_timer = app_timer_register(ANIM_FRAME_MS, prv_anim_frame, NULL);
+  }
   if (s_field == 0) {
     s_hour = (s_hour + 24 + delta) % 24;
   } else {
     s_minute = (s_minute + 60 + delta) % 60;
   }
   prv_redraw();
+}
+
+// Buttons: up = more, the new value comes from the top
+static void prv_change(int delta) {
+  prv_change_moving(delta, delta > 0 ? 1 : -1);
 }
 
 static void prv_up(ClickRecognizerRef r, void *c) { prv_change(1); }
@@ -203,17 +228,19 @@ static void prv_tap(const Recognizer *recognizer, RecognizerEvent event) {
   prv_redraw();
 }
 
-// Touch: swipe down = more, swipe up = less (like a scroll wheel)
+// Touch: swipe down = more, swipe up = less (like a scroll wheel); reversed on request.
+// The numbers always roll in the direction of the finger.
 static void prv_pan(const Recognizer *recognizer, RecognizerEvent event) {
   if (event == RecognizerEvent_Started) s_pan_accum = 0;
   if (event != RecognizerEvent_Updated && event != RecognizerEvent_Completed) return;
+  int sign = (time_picker_flags() & TIME_INPUT_REVERSE) ? -1 : 1;
   s_pan_accum += pan_recognizer_get_delta_since_prev(recognizer).y;
   while (s_pan_accum >= PAN_STEP_PX) {
-    prv_change(1);
+    prv_change_moving(sign, 1);
     s_pan_accum -= PAN_STEP_PX;
   }
   while (s_pan_accum <= -PAN_STEP_PX) {
-    prv_change(-1);
+    prv_change_moving(-sign, -1);
     s_pan_accum += PAN_STEP_PX;
   }
 }

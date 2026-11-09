@@ -170,6 +170,18 @@
       </label>
       <div class="description" data-t="left_handed_hint"></div>
     </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="ti_reverse"></span>
+        <input id="ti-reverse" type="checkbox"><span class="track"></span>
+      </label>
+      <div class="description" data-t="ti_reverse_hint"></div>
+    </div>
+    <div class="component component-toggle">
+      <label class="tap-highlight"><span data-t="ti_anim"></span>
+        <input id="ti-anim" type="checkbox"><span class="track"></span>
+      </label>
+      <div class="description" data-t="ti_anim_hint"></div>
+    </div>
   </div>
 
   <div class="section">
@@ -303,6 +315,10 @@
       stop_title: 'Wecker klingelt', stop_button: 'Wecker beenden', stop_ringing: '{n} · {t} klingelt gerade.',
       stop_snoozed: '{n} · {t} schlummert gerade.', stop_done: 'Wecker beendet.',
       stop_hint: 'Beendet den Wecker sofort auf der Uhr, auch während einer Weckaufgabe. Erscheint nur, solange ein Wecker klingelt oder schlummert. Beim Schlummern muss WristWake dafür auf der Uhr geöffnet sein.',
+      ti_reverse: 'Wischrichtung bei der Zeiteingabe umkehren',
+      ti_reverse_hint: 'Normal: nach unten wischen erhöht die Zahl, wie bei einem Rad. Eingeschaltet: nach oben wischen erhöht sie. Die Tasten bleiben gleich (oben = mehr).',
+      ti_anim: 'Rollen der Zahlen bei der Zeiteingabe',
+      ti_anim_hint: 'Ausschalten, damit die Zahlen ohne Animation sofort wechseln.',
       left_handed: 'Linkshänder-Modus',
       left_handed_hint: 'Einschalten, wenn die Uhr im Linkshänder-Modus läuft (Bildschirm gedreht, Knöpfe links). Die Tasten-Symbole beim Klingeln und bei Rückfragen erscheinen dann links. Die Uhr kann diese Systemeinstellung Apps noch nicht mitteilen.',
       alarms_title: 'Wecker', no_alarms: 'Noch keine Wecker. Wecker legst du auf der Uhr mit „+ NEU“ an.',
@@ -344,6 +360,10 @@
       stop_title: 'Alarm ringing', stop_button: 'Stop alarm', stop_ringing: '{n} · {t} is ringing.',
       stop_snoozed: '{n} · {t} is snoozing.', stop_done: 'Alarm stopped.',
       stop_hint: 'Stops the alarm on the watch right away, also during a challenge. Only shown while an alarm is ringing or snoozing. While snoozing, WristWake has to be open on the watch.',
+      ti_reverse: 'Reverse swipe direction in the time input',
+      ti_reverse_hint: 'Normal: swiping down increases the number, like a wheel. On: swiping up increases it. The buttons stay the same (up = more).',
+      ti_anim: 'Rolling numbers in the time input',
+      ti_anim_hint: 'Turn off to change the numbers right away, without animation.',
       left_handed: 'Left-handed mode',
       left_handed_hint: 'Turn on if the watch runs in left-handed mode (screen rotated, buttons on the left). The button symbols when ringing and in confirmations then appear on the left. The watch cannot pass this system setting to apps yet.',
       alarms_title: 'Alarms', no_alarms: 'No alarms yet. Create alarms on the watch with “+ NEW”.',
@@ -768,6 +788,9 @@
   function render() {
     $('watch-name').value = state.wn || '';
     $('left-handed').checked = !!state.lh;
+    var ti = state.ti || 0;
+    $('ti-reverse').checked = !!(ti & 1);
+    $('ti-anim').checked = !(ti & 2);
     var sf = state.sf === undefined ? 15 : state.sf;
     $('sym-list').checked = !!(sf & 1); $('sym-menu').checked = !!(sf & 2);
     $('sym-ring').checked = !!(sf & 4); $('sym-ha').checked = !!(sf & 8);
@@ -810,6 +833,7 @@
       theme: currentTheme(), colors: colors[0].concat(colors[1]), names: names,
       watch_name: $('watch-name').value.trim() || 'Pebble',
       left_handed: $('left-handed').checked,
+      time_input: ($('ti-reverse').checked ? 1 : 0) | ($('ti-anim').checked ? 0 : 2),
       symbol_flags: ($('sym-list').checked ? 1 : 0) | ($('sym-menu').checked ? 2 : 0) |
                     ($('sym-ring').checked ? 4 : 0) | ($('sym-ha').checked ? 8 : 0),
       schedule: { mode: schedMode(), night: nightTheme(), day: fromTime($('day-time').value),

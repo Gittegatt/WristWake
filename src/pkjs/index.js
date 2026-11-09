@@ -561,6 +561,7 @@ function applySettings(s, callback) {
     LEFT_HANDED: s.left_handed ? 1 : 0
   };
   if (s.symbol_flags !== undefined) dict.SYMBOL_FLAGS = s.symbol_flags;
+  if (s.time_input !== undefined) dict.TIME_INPUT = s.time_input;
   if (s.schedule) dict.THEME_SCHEDULE = scheduleBytes(s.schedule);
   sendToWatch(dict, function (err) {
     if (!err) updateRegistration(s.watch_name);

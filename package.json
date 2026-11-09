@@ -41,7 +41,8 @@
       "SUN_TIMES",
       "HA_CONFIG",
       "SYMBOL_FLAGS",
-      "STOP_ALARM"
+      "STOP_ALARM",
+      "TIME_INPUT"
     ],
     "resources": {
       "media": [
