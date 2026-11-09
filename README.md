@@ -26,21 +26,22 @@ Features:
 - 18 ringtones, including 5 rising ones, each with 4 volume levels
 - vibration patterns, with or without a ringtone
 - one of 30 symbols per alarm, shown in the list, when ringing and in Home Assistant
-- snooze off: only holding the bottom button stops the alarm
-- hold select button to toggle on / off
+- stop only by holding the bottom button, so you can't switch it off half asleep
+- hold the Select button in the list to turn an alarm on or off
+- stop a ringing alarm from the settings page on your phone
 - wake-up challenge:
     - easy: repeat a random button sequence (Follow, 4–10 steps)
     - difficult: guess and remember it (Remember, 3–5 steps) before the alarm stops
-- 10 color presets or 2 with your own colors
+- 10 color presets or 2 custom schemes with your own colors
 - optionally a second scheme for darkness
     - fixed times or by sunrise and sunset
 - right- and left-handed mode
-- Languages: English, German (request a new one if you like the app)
+- languages: English, German (request a new one if you like the app)
 
 Coming next:
 - Android companion alarm app that enables two-way sync between Home Assistant, your Pebble and your Android phone.
 
-If you would like a new feature, e.g. new language please let me know.
+If you would like a new feature, e.g. a new language, please let me know.
 
 ## Run in the emulator
 
