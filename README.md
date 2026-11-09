@@ -6,7 +6,7 @@ Alarm clock watchapp for the Pebble Time 2 (SDK platform `emery`) with up to 8 a
 
 ## About (Pebble App Store description)
 
-WristWake is an alarm app for the Pebble Time 2 that syncs your alarms with Home Assistant. This lets you, for example, turn on the lights or start the coffee machine when your alarm rings. WristWake connects to your Home Assistant instance with a long-lived access token. The token is used only once to register your watch and is then discarded - it is never stored. After that, all updates are sent via webhook.
+WristWake is an alarm app for the Pebble Time 2 that syncs your alarms with Home Assistant. This lets you, for example, turn on the lights or start the coffee machine when your alarm rings. WristWake connects to your Home Assistant instance with a long-lived access token. The token is used only once to register your watch and is then discarded. It is never stored. After that, all updates are sent via webhook.
 
 I love waking up to the vibration of my Pebble on my wrist. The native Android alarm app can sync its alarms with Home Assistant through the Home Assistant Companion App. With a Pebble, however, there was no way to pass my alarms on to Home Assistant to trigger automations or other actions. WristWake bridges this gap.
 
