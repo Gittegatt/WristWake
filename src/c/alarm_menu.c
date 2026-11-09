@@ -255,6 +255,10 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
         snprintf(s_subtitle, sizeof(s_subtitle), "%s, %d, %s", ui_challenge_name(a->challenge),
                  a->challenge_len, ui_pause_name(a->challenge_pause));
         subtitle = s_subtitle;
+      } else if (a->challenge == CHALLENGE_REMEMBER) {
+        snprintf(s_subtitle, sizeof(s_subtitle), "%s, %d", ui_challenge_name(a->challenge),
+                 a->remember_len);
+        subtitle = s_subtitle;
       } else {
         subtitle = ui_challenge_name(a->challenge);
       }

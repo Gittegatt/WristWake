@@ -1,7 +1,7 @@
 #include "alarm_store.h"
 
 // Persistent storage keys (theme: 10-12, see theme.c; status: 5, see comms.c)
-#define STORE_SCHEMA_VERSION 9
+#define STORE_SCHEMA_VERSION 10
 #define KEY_SCHEMA      1
 #define KEY_WATCH_ID    2
 #define KEY_WATCH_NAME  3
@@ -122,6 +122,9 @@ static void prv_sanitize(Alarm *alarm) {
     alarm->challenge_len = DEFAULT_CHALLENGE_LEN;
   }
   if (alarm->challenge_pause >= CHALLENGE_PAUSE_COUNT) alarm->challenge_pause = DEFAULT_CHALLENGE_PAUSE;
+  if (alarm->remember_len < REMEMBER_LEN_MIN || alarm->remember_len > REMEMBER_LEN_MAX) {
+    alarm->remember_len = DEFAULT_REMEMBER_LEN;
+  }
 }
 
 static void prv_generate_watch_id(void) {
@@ -181,8 +184,14 @@ static void prv_migrate_old(int32_t schema) {
     if (schema == 8 && read >= (int)offsetof(Alarm, challenge_len)) {
       memcpy(&alarm, raw, offsetof(Alarm, challenge_len));   // schema 8: no length/pause yet
     }
-    alarm.challenge_len = DEFAULT_CHALLENGE_LEN;
-    alarm.challenge_pause = DEFAULT_CHALLENGE_PAUSE;
+    if (schema <= 8) {
+      alarm.challenge_len = DEFAULT_CHALLENGE_LEN;
+      alarm.challenge_pause = DEFAULT_CHALLENGE_PAUSE;
+    }
+    if (schema == 9 && read >= (int)offsetof(Alarm, remember_len)) {
+      memcpy(&alarm, raw, offsetof(Alarm, remember_len));    // schema 9: no Remember length yet
+    }
+    alarm.remember_len = DEFAULT_REMEMBER_LEN;
     persist_write_data(key, &alarm, sizeof(alarm));
   }
   for (int k = 0; k < 3; k++) persist_delete(KEY_OLD_VIBE_MS + k);
@@ -263,6 +272,7 @@ void store_alarm_defaults(Alarm *alarm) {
   alarm->volume = DEFAULT_VOLUME;
   alarm->challenge_len = DEFAULT_CHALLENGE_LEN;
   alarm->challenge_pause = DEFAULT_CHALLENGE_PAUSE;
+  alarm->remember_len = DEFAULT_REMEMBER_LEN;
 }
 
 bool store_save(int slot, const Alarm *alarm) {

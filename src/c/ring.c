@@ -17,7 +17,6 @@
 typedef enum { RING_ACTIVE, RING_CHALLENGE, RING_DONE } RingState;
 
 // Challenge: a random sequence of buttons that must be pressed before the alarm stops
-#define CHALLENGE_REMEMBER_LEN 4   // Remember always has 4 boxes (they fit on the screen)
 #define CHALLENGE_IDLE_MS (30 * 1000)   // no input: back to the ringing screen
 enum { CH_UP = 0, CH_SELECT, CH_DOWN };
 
@@ -82,7 +81,7 @@ static RingChallenge prv_needs_challenge(void) {
     const Alarm *a = store_get(slot);
     if (prv_in_mask(slot) && a->used && a->challenge > ch.mode) {
       ch.mode = a->challenge;
-      ch.length = a->challenge_len;
+      ch.length = a->challenge == CHALLENGE_REMEMBER ? a->remember_len : a->challenge_len;
       ch.pause_ms = CHALLENGE_PAUSES_MS[a->challenge_pause];
     }
   }
@@ -281,14 +280,15 @@ static void prv_draw(Layer *layer, GContext *ctx) {
     if (remember) {
       // Remember: one box per step; "?" until guessed, the current box is filled
       int slot_w = (b.size.w - 16) / s_challenge_len;
+      int box_w = slot_w - 4 < 40 ? slot_w - 4 : 40;   // narrower with 5 boxes
       for (int i = 0; i < s_challenge_len; i++) {
         GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 116);
         if (i == s_challenge_pos) {
           graphics_context_set_fill_color(ctx, t->hl_bg);   // current box in the selection color
-          graphics_fill_rect(ctx, GRect(c.x - 20, c.y - 24, 40, 48), 8, GCornersAll);
+          graphics_fill_rect(ctx, GRect(c.x - box_w / 2, c.y - 24, box_w, 48), 8, GCornersAll);
         }
         if (i < s_challenge_pos) {
-          prv_draw_symbol(ctx, c, s_challenge[i], 12, t->fg);
+          prv_draw_symbol(ctx, c, s_challenge[i], slot_w * 3 / 10 < 12 ? slot_w * 3 / 10 : 12, t->fg);
         } else {
           graphics_context_set_text_color(ctx, i == s_challenge_pos ? t->hl_fg : t->dim);
           graphics_draw_text(ctx, "?", fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
@@ -411,8 +411,12 @@ static void prv_challenge_touch_timer(void) {
 
 static void prv_challenge_start(const RingChallenge *ch) {
   s_challenge_mode = ch->mode;
-  s_challenge_len = ch->mode == CHALLENGE_REMEMBER ? CHALLENGE_REMEMBER_LEN : ch->length;
-  if (s_challenge_len < CHALLENGE_LEN_MIN || s_challenge_len > CHALLENGE_LEN_MAX) {
+  s_challenge_len = ch->length;
+  if (ch->mode == CHALLENGE_REMEMBER) {
+    if (s_challenge_len < REMEMBER_LEN_MIN || s_challenge_len > REMEMBER_LEN_MAX) {
+      s_challenge_len = DEFAULT_REMEMBER_LEN;
+    }
+  } else if (s_challenge_len < CHALLENGE_LEN_MIN || s_challenge_len > CHALLENGE_LEN_MAX) {
     s_challenge_len = DEFAULT_CHALLENGE_LEN;
   }
   s_challenge_pause_ms = ch->pause_ms;

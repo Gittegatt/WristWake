@@ -16,6 +16,17 @@ static char s_subtitle[16];
 static const char *s_mode_labels[CHALLENGE_COUNT];
 static const char *s_length_labels[CHALLENGE_LEN_MAX - CHALLENGE_LEN_MIN + 1];
 static char s_length_text[CHALLENGE_LEN_MAX - CHALLENGE_LEN_MIN + 1][4];
+
+// Length range of the current mode: Follow 4-10 buttons, Remember 3-5 boxes
+static int prv_len_min(const Alarm *a) {
+  return a->challenge == CHALLENGE_REMEMBER ? REMEMBER_LEN_MIN : CHALLENGE_LEN_MIN;
+}
+static int prv_len_max(const Alarm *a) {
+  return a->challenge == CHALLENGE_REMEMBER ? REMEMBER_LEN_MAX : CHALLENGE_LEN_MAX;
+}
+static int prv_len(const Alarm *a) {
+  return a->challenge == CHALLENGE_REMEMBER ? a->remember_len : a->challenge_len;
+}
 static const char *s_pause_labels[CHALLENGE_PAUSE_COUNT];
 
 static Alarm prv_current(void) {
@@ -35,7 +46,8 @@ static void prv_mode_done(int index, void *ctx) {
 
 static void prv_length_done(int index, void *ctx) {
   Alarm a = prv_current();
-  a.challenge_len = CHALLENGE_LEN_MIN + index;
+  if (a.challenge == CHALLENGE_REMEMBER) a.remember_len = REMEMBER_LEN_MIN + index;
+  else a.challenge_len = CHALLENGE_LEN_MIN + index;
   prv_save(&a);
 }
 
@@ -68,7 +80,7 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       break;
     case ROW_LENGTH:
       title = TR("Length", "Länge");
-      snprintf(s_subtitle, sizeof(s_subtitle), "%d", a->challenge_len);
+      snprintf(s_subtitle, sizeof(s_subtitle), "%d", prv_len(a));
       subtitle = s_subtitle;
       break;
     case ROW_PAUSE:
@@ -76,8 +88,9 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
       subtitle = ui_pause_name(a->challenge_pause);
       break;
   }
-  // Length and pause only apply to Follow
-  bool greyed = index->row != ROW_MODE && a->challenge != CHALLENGE_FOLLOW;
+  // Length applies to Follow and Remember, the pause only to Follow
+  bool greyed = (index->row == ROW_LENGTH && a->challenge == CHALLENGE_OFF) ||
+                (index->row == ROW_PAUSE && a->challenge != CHALLENGE_FOLLOW);
   graphics_context_set_text_color(ctx, greyed ? (hl ? t->hl_dim : t->dim) : (hl ? t->hl_fg : t->fg));
   graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
                      GRect(10, -7, b.size.w - 20, 34), GTextOverflowModeTrailingEllipsis,
@@ -89,7 +102,11 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
 
 static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
   Alarm a = prv_current();
-  if (index->row != ROW_MODE && a.challenge != CHALLENGE_FOLLOW) {
+  if (index->row == ROW_LENGTH && a.challenge == CHALLENGE_OFF) {
+    ui_show_message(TR("Choose a mode first.", "Erst einen Modus wählen."));
+    return;
+  }
+  if (index->row == ROW_PAUSE && a.challenge != CHALLENGE_FOLLOW) {
     ui_show_message(TR("Only for the Follow mode.", "Nur für den Modus „Folgen“."));
     return;
   }
@@ -100,13 +117,13 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
                          prv_mode_done, NULL);
       break;
     case ROW_LENGTH: {
-      int count = CHALLENGE_LEN_MAX - CHALLENGE_LEN_MIN + 1;
+      int min = prv_len_min(&a), count = prv_len_max(&a) - min + 1;
       for (int i = 0; i < count; i++) {
-        snprintf(s_length_text[i], sizeof(s_length_text[i]), "%d", CHALLENGE_LEN_MIN + i);
+        snprintf(s_length_text[i], sizeof(s_length_text[i]), "%d", min + i);
         s_length_labels[i] = s_length_text[i];
       }
       option_picker_show(TR("Length", "Länge"), s_length_labels, count,
-                         a.challenge_len - CHALLENGE_LEN_MIN, prv_length_done, NULL);
+                         prv_len(&a) - min, prv_length_done, NULL);
       break;
     }
     case ROW_PAUSE:

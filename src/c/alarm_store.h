@@ -65,6 +65,11 @@ typedef enum {
 #define DEFAULT_CHALLENGE_PAUSE 1   // index into CHALLENGE_PAUSES_MS (1 s)
 extern const uint16_t CHALLENGE_PAUSES_MS[CHALLENGE_PAUSE_COUNT];
 
+// Remember challenge: number of boxes (3-5, they have to fit on the screen)
+#define REMEMBER_LEN_MIN 3
+#define REMEMBER_LEN_MAX 5
+#define DEFAULT_REMEMBER_LEN 4
+
 // Built-in vibration patterns (sequences in alert.c)
 typedef enum {
   VIBE_STANDARD = 0,
@@ -109,6 +114,7 @@ typedef struct {
   uint8_t challenge;           // AlarmChallenge, since schema 8
   uint8_t challenge_len;       // Follow: number of buttons, since schema 9
   uint8_t challenge_pause;     // Follow: index into CHALLENGE_PAUSES_MS, since schema 9
+  uint8_t remember_len;        // Remember: number of boxes, since schema 10
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).
