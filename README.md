@@ -29,6 +29,7 @@ Features:
 - stop only by holding the bottom button, so you can't switch it off half asleep
 - hold the Select button in the list to turn an alarm on or off
 - stop a ringing alarm from the settings page on your phone
+- touch input: swipe and tap in lists, menus and the time input (swipe direction can be reversed)
 - wake-up challenge:
     - easy: repeat a random button sequence (Follow, 4–10 steps)
     - difficult: guess and remember it (Remember, 3–5 steps) before the alarm stops
