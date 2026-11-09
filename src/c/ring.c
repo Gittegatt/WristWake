@@ -115,7 +115,9 @@ static void prv_build_names(void) {
 // Sound/vibration from the settings of the ringing alarms
 static void prv_start_alert(void) {
   if (s_test) {
-    alert_start(&s_test_params);
+    AlertParams t = s_test_params;
+    if (!t.vibrate && speaker_is_muted()) t.vibrate = true;   // muted: vibrate instead
+    alert_start(&t);
     return;
   }
   AlertParams p = {.vibe_pattern = DEFAULT_VIBE_PATTERN, .vibrate = false,
@@ -133,7 +135,9 @@ static void prv_start_alert(void) {
       p.volume = a->volume;
     }
   }
-  if (!p.vibrate && p.sound == ALARM_SOUND_OFF) p.vibrate = true;  // never silent
+  // Never silent: without a sound, or with the speaker muted (always or during Quiet Time),
+  // the watch vibrates even if vibration is off for the alarm
+  if (!p.vibrate && (p.sound == ALARM_SOUND_OFF || speaker_is_muted())) p.vibrate = true;
   alert_start(&p);
 }
 
