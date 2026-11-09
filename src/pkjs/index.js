@@ -124,9 +124,9 @@ function dayList(mask) {
 // Alarm symbols (symbols.c on the watch) -> Home Assistant icon
 var SYMBOL_ICONS = {
   sun: 'mdi:weather-sunny',
-  sun_horizon: 'mdi:weather-sunset-up',
+  sun_horizon: 'mdi:weather-sunset',
   moon: 'mdi:moon-waning-crescent',
-  moon_horizon: 'mdi:weather-moonset-up',
+  moon_horizon: 'mdi:weather-moonset',
   cup: 'mdi:coffee',
   work: 'mdi:briefcase',
   sleep: 'mdi:bed',
