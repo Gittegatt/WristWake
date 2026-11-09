@@ -96,7 +96,7 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
   }
   // "zZ" at a fixed place left of the toggle when snoozing is possible (snooze on, no challenge)
   if (a->snooze > 0 && a->challenge == CHALLENGE_OFF) {
-    graphics_draw_text(ctx, "zZ", small_font, GRect(b.size.w - UI_TOGGLE_W - 16 - ZZ_W, 11, ZZ_W, 22),
+    graphics_draw_text(ctx, "zZ", small_font, GRect(b.size.w - UI_TOGGLE_W - 16 - ZZ_W, 10, ZZ_W, 22),
                        GTextOverflowModeFill, GTextAlignmentRight, NULL);
   }
   ui_draw_toggle(ctx, GPoint(b.size.w - UI_TOGGLE_W - 8, 14), a->enabled, hl);
