@@ -9,7 +9,6 @@
 #define AUTO_SNOOZE_MS (60 * 1000)
 #define MAX_RING_MS (30 * 60 * 1000)   // snooze off: stop after 30 minutes (battery)
 #define HOLD_MS 1500         // hold the bottom button this long = stop
-#define TAP_MS 300           // released sooner = snooze
 #define HOLD_FRAME_MS 33     // about 30 frames per second
 #define HOLD_REWIND_SPEED 4  // rewind after early release: 4x as fast
 #define CLOSE_DELAY_MS 3000  // some time for the phone to send the state to Home Assistant
@@ -383,8 +382,8 @@ static void prv_draw(Layer *layer, GContext *ctx) {
 
   // hints at the bottom
   graphics_context_set_text_color(ctx, t->dim);
-  graphics_draw_text(ctx, can_snooze ? TR("Any button: snooze\nHold bottom button: stop",
-                                          "Taste: Schlummern\nUntere Taste halten: Aus")
+  graphics_draw_text(ctx, can_snooze ? TR("Top/middle button: snooze\nHold bottom button: stop",
+                                          "Obere/mittlere Taste: Schlummern\nUntere Taste halten: Aus")
                                      : TR("Hold bottom button: stop", "Untere Taste halten: Aus"),
                      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
                      GRect(cx0 + 4, b.size.h - 40, content_w - 8, 36), GTextOverflowModeWordWrap,
@@ -473,9 +472,8 @@ static void prv_select_click(ClickRecognizerRef r, void *c) {
   else prv_snooze();
 }
 
+// BACK does nothing while ringing: only the top and middle button snooze
 static void prv_back_click(ClickRecognizerRef r, void *c) {
-  if (s_state == RING_CHALLENGE) return;   // only solving the challenge ends it
-  prv_snooze();
 }
 
 static uint32_t prv_now_ms(void) {
@@ -529,12 +527,7 @@ static void prv_down_pressed(ClickRecognizerRef r, void *c) {
 static void prv_down_released(ClickRecognizerRef r, void *c) {
   if (!s_holding) return;
   s_holding = false;
-  // very short press = snooze; released early = keep ringing
-  if (prv_now_ms() - s_hold_start_ms < TAP_MS) {
-    s_hold_progress = 0;
-    prv_snooze();
-    return;
-  }
+  // released early (also a short press) = keep ringing, the bar runs back
   if (!s_hold_timer) s_hold_timer = app_timer_register(HOLD_FRAME_MS, prv_hold_frame, NULL);
 }
 
@@ -542,13 +535,8 @@ static void prv_clicks(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click);
-  // bottom button: short = snooze, hold 1.5 s = stop (bar fills up)
+  // top/middle button: snooze; bottom button: hold 1.5 s = stop (bar fills up), short = nothing
   window_raw_click_subscribe(BUTTON_ID_DOWN, prv_down_pressed, prv_down_released, NULL);
-}
-
-// tapping the screen = snooze
-static void prv_tap(const Recognizer *recognizer, RecognizerEvent event) {
-  if (event == RecognizerEvent_Completed) prv_snooze();
 }
 
 static void prv_load(Window *window) {
@@ -557,7 +545,6 @@ static void prv_load(Window *window) {
   layer_set_update_proc(s_layer, prv_draw);
   layer_add_child(root, s_layer);
   window_set_touch_bridge_disabled(window, true);
-  window_attach_recognizer(window, tap_recognizer_create(prv_tap, NULL));
 }
 
 static void prv_unload(Window *window) {
