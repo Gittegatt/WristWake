@@ -34,6 +34,7 @@
   h1 { font-size: 2rem; line-height: 2.8rem; }
   h4 { font-size: 1.2rem; line-height: 1.4rem; }
   .page-title { padding: 0.7rem 0.75rem 0; }
+  .slogan { color: var(--desc); font-size: 0.95rem; line-height: 1.2rem; margin-top: -0.2rem; }
   .component { padding-top: 0.7rem; }
   .section { background: var(--section); border-radius: 0.25rem; box-shadow: var(--shadow) 0 0.15rem 0.25rem;
              margin-top: 1rem; }
@@ -116,7 +117,7 @@
 </style>
 </head>
 <body>
-<div class="page-title"><h1>WristWake</h1></div>
+<div class="page-title"><h1>WristWake</h1><p class="slogan" data-t="slogan"></p></div>
 <p id="loading" class="status" style="padding:0 0.75rem">…</p>
 
 <div id="content" class="hidden">
@@ -263,7 +264,7 @@
 (function () {
   var TEXT = {
     de: {
-      subtitle: 'Wecker-Einstellungen', design_label: 'Farbschema',
+      subtitle: 'Wecker-Einstellungen', slogan: 'Wecker mit Home-Assistant-Abgleich', design_label: 'Farbschema',
       ha_title: 'Home Assistant', ha_url: 'Adresse von Home Assistant', ha_token: 'Langlebiges Zugriffstoken',
       ha_token_hint: 'In HA unter Profil → Sicherheit erstellen. Das Token wird nur einmal zum Anmelden benutzt und danach verworfen, nirgends gespeichert.',
       ha_connect: 'Verbinden', ha_reconnect: 'Neu verbinden', ha_disconnect: 'Trennen',
@@ -302,7 +303,7 @@
       mode_fallback: 'Verbindung zur App: Ersatzweg (die Seite schließt sich beim Speichern)'
     },
     en: {
-      subtitle: 'Alarm settings', design_label: 'Color scheme',
+      subtitle: 'Alarm settings', slogan: 'Alarms with Home Assistant Sync', design_label: 'Color scheme',
       ha_title: 'Home Assistant', ha_url: 'Home Assistant address', ha_token: 'Long-lived access token',
       ha_token_hint: 'Create it in HA under Profile → Security. The token is used once to connect and then discarded, never stored.',
       ha_connect: 'Connect', ha_reconnect: 'Reconnect', ha_disconnect: 'Disconnect',
