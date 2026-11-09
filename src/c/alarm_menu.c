@@ -133,6 +133,7 @@ static void prv_sound_done(int index, void *ctx) {
     return;
   }
   a.sound = sound;
+  if (sound != ALARM_SOUND_OFF) a.last_sound = sound;
   prv_save(&a);
 }
 
@@ -270,7 +271,6 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
   }
   // Protected alarm: show "Delete" greyed out
   bool greyed = (index->row == ROW_DELETE && a->protect) ||
-                (index->row == ROW_VOLUME && a->sound == ALARM_SOUND_OFF) ||
                 (index->row == ROW_SNOOZE && a->challenge != CHALLENGE_OFF);
 
   int text_w = b.size.w - 16 - (toggle >= 0 ? UI_TOGGLE_W + 10 : 0);
@@ -326,11 +326,7 @@ static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
                          prv_sort_sounds(a.sound), prv_sound_done, NULL);
       break;
     case ROW_VOLUME:
-      if (a.sound == ALARM_SOUND_OFF) {
-        ui_show_message(TR("Choose a sound first.", "Zuerst einen Ton wählen."));
-      } else {
-        volume_menu_show(s_slot);  // levels with a preview of the sound
-      }
+      volume_menu_show(s_slot);  // Off and the levels, with a preview of the sound
       break;
     case ROW_VIBRATION:
       vibe_menu_show(s_slot);  // on/off and pattern

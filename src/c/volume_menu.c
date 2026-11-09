@@ -16,7 +16,15 @@ static const Alarm *prv_alarm(void) {
   return store_get(s_slot);
 }
 
-static uint16_t prv_rows(MenuLayer *m, uint16_t s, void *c) { return ALARM_VOLUME_COUNT; }
+// Rows: 0 = Off (sound off), 1-4 = the volume levels. Off and the sound "Off" are the same.
+#define ROW_OFF 0
+
+static int prv_current_row(void) {
+  const Alarm *a = prv_alarm();
+  return a->sound == ALARM_SOUND_OFF ? ROW_OFF : a->volume + 1;
+}
+
+static uint16_t prv_rows(MenuLayer *m, uint16_t s, void *c) { return ALARM_VOLUME_COUNT + 1; }
 static int16_t prv_cell_h(MenuLayer *m, MenuIndex *i, void *c) { return ROW_H; }
 static int16_t prv_header_h(MenuLayer *m, uint16_t s, void *c) { return HEADER_H; }
 
@@ -30,15 +38,22 @@ static void prv_draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, voi
   bool hl = menu_cell_layer_is_highlighted(cell);
   GRect b = layer_get_bounds(cell);
   graphics_context_set_text_color(ctx, hl ? t->hl_fg : t->fg);
-  graphics_draw_text(ctx, ui_volume_name(index->row), fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+  const char *name = index->row == ROW_OFF ? TR("Off", "Aus") : ui_volume_name(index->row - 1);
+  graphics_draw_text(ctx, name, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
                      GRect(10, (b.size.h - 36) / 2, b.size.w - 50, 36),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  ui_draw_radio(ctx, GPoint(b.size.w - 22, b.size.h / 2), index->row == prv_alarm()->volume, hl);
+  ui_draw_radio(ctx, GPoint(b.size.w - 22, b.size.h / 2), index->row == prv_current_row(), hl);
 }
 
-// Looping preview of the alarm's sound at the highlighted volume
+// Looping preview of the alarm's sound (or its last sound) at the highlighted volume; Off = silence
 static void prv_preview_row(int row) {
-  AlertParams p = {.vibrate = false, .sound = prv_alarm()->sound, .volume = row, .preview = true};
+  if (row == ROW_OFF) {
+    alert_stop();
+    return;
+  }
+  const Alarm *a = prv_alarm();
+  AlarmSound sound = a->sound != ALARM_SOUND_OFF ? a->sound : a->last_sound;
+  AlertParams p = {.vibrate = false, .sound = sound, .volume = row - 1, .preview = true};
   alert_start(&p);
 }
 
@@ -46,10 +61,20 @@ static void prv_selection_changed(MenuLayer *m, MenuIndex new_index, MenuIndex o
   if (s_ready) prv_preview_row(new_index.row);
 }
 
-// Choosing a volume saves it and returns to the alarm menu
+// Choosing saves and returns to the alarm menu. Off turns the sound off; a level with the
+// sound off brings back the last sound.
 static void prv_select(MenuLayer *m, MenuIndex *index, void *c) {
   Alarm a = *prv_alarm();
-  a.volume = index->row;
+  if (index->row == ROW_OFF) {
+    if (!a.vibrate) {   // a silent alarm is not allowed
+      ui_show_message(TR("Sound or vibration must stay on.", "Ton oder Vibration muss an bleiben."));
+      return;
+    }
+    a.sound = ALARM_SOUND_OFF;
+  } else {
+    a.volume = index->row - 1;
+    if (a.sound == ALARM_SOUND_OFF) a.sound = a.last_sound;
+  }
   store_save(s_slot, &a);
   window_stack_remove(s_window, true);  // stops the preview (prv_unload)
 }
@@ -69,7 +94,7 @@ static void prv_load(Window *window) {
   };
   menu_layer_set_callbacks(s_menu, NULL, callbacks);
   menu_layer_set_click_config_onto_window(s_menu, window);
-  int row = prv_alarm()->volume;
+  int row = prv_current_row();
   menu_layer_set_selected_index(s_menu, MenuIndex(0, row), MenuRowAlignCenter, false);
   layer_add_child(root, menu_layer_get_layer(s_menu));
   s_ready = true;
@@ -87,7 +112,7 @@ static void prv_unload(Window *window) {
 
 void volume_menu_show(int slot) {
   const Alarm *a = store_get(slot);
-  if (s_window || !a || !a->used || a->sound == ALARM_SOUND_OFF) return;
+  if (s_window || !a || !a->used) return;
   s_slot = slot;
   s_ready = false;
   s_window = window_create();

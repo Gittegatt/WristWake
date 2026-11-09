@@ -93,6 +93,7 @@ extern const uint8_t SNOOZE_OPTIONS[SNOOZE_OPTION_COUNT];
 #define DEFAULT_VIBE_PATTERN VIBE_STANDARD
 #define DEFAULT_SNOOZE 5
 #define DEFAULT_VOLUME ALARM_VOLUME_MEDIUM
+#define DEFAULT_LAST_SOUND ALARM_SOUND_REVEILLE   // comes back when a volume is chosen for "Off"
 
 // One alarm slot. Changing this layout requires a new STORE_SCHEMA_VERSION in
 // alarm_store.c and a migration of the old data.
@@ -115,6 +116,7 @@ typedef struct {
   uint8_t challenge_len;       // Follow: number of buttons, since schema 9
   uint8_t challenge_pause;     // Follow: index into CHALLENGE_PAUSES_MS, since schema 9
   uint8_t remember_len;        // Remember: number of boxes, since schema 10
+  uint8_t last_sound;          // last sound other than Off (for volume "Off" -> level), since schema 11
 } Alarm;
 
 // Called after every saved alarm change (e.g. to reschedule).

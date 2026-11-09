@@ -1,5 +1,5 @@
 #pragma once
-// Volume menu of an alarm: Quiet, Low, Medium, High.
+// Volume menu of an alarm: Off (= sound off), Quiet, Low, Medium, High.
 // The alarm's sound plays as a looping preview at the highlighted volume.
 #include <pebble.h>
 
