@@ -145,8 +145,9 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
   if ((days & 0x7F) == 0) {
     graphics_context_set_text_color(ctx, highlighted ? (dimmed ? t->hl_dim : t->hl_fg)
                                                      : (dimmed ? t->dim : t->fg));
-    graphics_draw_text(ctx, TR("Once", "Einmal"), font, rect,
-                       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    // right-aligned, ending where the weekday letters end
+    graphics_draw_text(ctx, TR("Once", "Einmal"), font, GRect(rect.origin.x, rect.origin.y, rect.size.w - 2, rect.size.h),
+                       GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
     return;
   }
   const char *letters = TR("MTWTFSS", "MDMDFSS");
