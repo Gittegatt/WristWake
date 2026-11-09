@@ -20,3 +20,4 @@ void comms_send_state(void);
 
 // Set the Home Assistant status (idle/ringing/snoozed/dismissed) and send it.
 void comms_set_status(AlarmStatus status, int slot);
+AlarmStatus comms_status(void);

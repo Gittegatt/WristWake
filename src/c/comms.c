@@ -179,6 +179,10 @@ void comms_set_status(AlarmStatus status, int slot) {
   comms_send_state();
 }
 
+AlarmStatus comms_status(void) {
+  return s_status;
+}
+
 // ---------------------------------------------------------------------------
 // Receive: settings from the settings page
 // ---------------------------------------------------------------------------

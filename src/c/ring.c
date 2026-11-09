@@ -598,6 +598,12 @@ static void prv_load(Window *window) {
 }
 
 static void prv_unload(Window *window) {
+  // Closed while still ringing (app quit, another app or the system alarm took over):
+  // nothing rings any more, so "ringing" must not stay
+  if (!s_test && (s_state == RING_ACTIVE || s_state == RING_CHALLENGE)) {
+    s_state = RING_DONE;
+    comms_set_status(ALARM_STATUS_IDLE, prv_first_slot());
+  }
   alert_stop();
   if (s_timer) {
     app_timer_cancel(s_timer);

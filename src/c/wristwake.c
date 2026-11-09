@@ -47,7 +47,8 @@ int main(void) {
   // For test screenshots only: build with "#define PREVIEW_THEME 1" (Dark) or 2 (Custom).
   // Note: the theme is then stored on the watch.
   ThemeBase preview = {GColorOxfordBlue, GColorWhite, GColorOrange, GColorBlack};
-  theme_set(PREVIEW_THEME, &preview);
+  theme_set_custom(0, &preview);
+  theme_set(PREVIEW_THEME);
 #endif
   store_set_change_handler(prv_store_changed);
   comms_init(prv_theme_changed);
@@ -66,6 +67,12 @@ int main(void) {
   scheduler_update();
   wakeup_service_subscribe(prv_wakeup);
   tick_timer_service_subscribe(MINUTE_UNIT, prv_minute_tick);
+
+  // Safety net: "ringing" is stored, but this start is not an alarm, so the last ringing
+  // ended without snooze or stop (e.g. the app was closed before the status could be saved)
+  if (!ring_mask && comms_status() == ALARM_STATUS_RINGING) {
+    comms_set_status(ALARM_STATUS_IDLE, 0);
+  }
 
   if (ring_mask) {
     ring_show(ring_mask);   // after snooze/stop the app closes again
