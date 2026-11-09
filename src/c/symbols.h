@@ -24,6 +24,6 @@ bool symbols_show(uint8_t where);
 const char *symbol_key(int symbol);    // language neutral, e.g. "sun" ("none" for 0)
 const char *symbol_name(int symbol);   // display name in the watch language
 
-// Draws the symbol with its top left corner at origin. bg = color behind it: if it equals
-// the tile color, a thin frame in frame_color keeps the tile visible.
+// Draws the symbol with its top left corner at origin. bg = color behind it: if it is the same
+// or very similar to the tile color, a thin frame in frame_color keeps the tile visible.
 void symbol_draw(GContext *ctx, int symbol, GPoint origin, bool large, GColor bg, GColor frame_color);

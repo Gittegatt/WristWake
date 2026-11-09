@@ -90,6 +90,17 @@ static GBitmap *prv_bitmap(int symbol, bool large) {
   return s_large;
 }
 
+// Same or very similar color (at most one level apart in total, 4 levels per channel):
+// the tile would hardly be visible on this background
+static bool prv_similar(GColor a, GColor b) {
+  int d = 0;
+  for (int shift = 0; shift <= 4; shift += 2) {
+    int diff = ((a.argb >> shift) & 3) - ((b.argb >> shift) & 3);
+    d += diff < 0 ? -diff : diff;
+  }
+  return d <= 1;
+}
+
 void symbol_draw(GContext *ctx, int symbol, GPoint origin, bool large, GColor bg, GColor frame_color) {
   if (symbol <= 0 || symbol >= SYMBOL_COUNT) return;
   GBitmap *bmp = prv_bitmap(symbol, large);
@@ -99,8 +110,8 @@ void symbol_draw(GContext *ctx, int symbol, GPoint origin, bool large, GColor bg
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, bmp, r);
   graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-  if (gcolor_equal(bg, GColorFromHEX(SYMBOLS[symbol - 1].rgb))) {
-    graphics_context_set_stroke_color(ctx, frame_color);   // tile in the same color as the background
+  if (prv_similar(bg, GColorFromHEX(SYMBOLS[symbol - 1].rgb))) {
+    graphics_context_set_stroke_color(ctx, frame_color);   // keep the tile visible on a similar background
     graphics_draw_round_rect(ctx, r, large ? 6 : 3);
   }
 }
