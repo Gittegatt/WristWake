@@ -139,7 +139,7 @@ const char *ui_snooze_name(uint8_t minutes) {
 // Drawing
 // ---------------------------------------------------------------------------
 
-#define DAY_LETTER_GAP 0   // pixels between the weekday letters (plus the font spacing)
+#define DAY_LETTER_GAP 1   // pixels between the weekday letters (plus the font spacing)
 
 void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlighted, bool dimmed) {
   const Theme *t = theme();
