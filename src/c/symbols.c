@@ -45,7 +45,7 @@ static const SymbolInfo SYMBOLS[SYMBOL_COUNT - 1] = {
   {"question", "Question", "Frage", 0xFF5500, RESOURCE_ID_SYM_QUESTION_S, RESOURCE_ID_SYM_QUESTION_L},
 };
 
-static const uint8_t ORDER[SYMBOL_COUNT - 1] = {29, 16, 11, 1, 2, 8, 30, 27, 15, 23, 9, 20, 12, 22, 14, 21, 25, 6, 3, 4, 13, 7, 28, 18, 10, 19, 26, 5, 24, 17};
+static const uint8_t ORDER[SYMBOL_COUNT - 1] = {27, 1, 2, 8, 30, 29, 16, 11, 23, 9, 20, 12, 22, 14, 21, 25, 6, 3, 4, 13, 7, 28, 18, 10, 19, 26, 5, 24, 15, 17};
 
 static uint8_t s_flags = SYMBOL_SHOW_ALL;
 static GBitmap *s_small[SYMBOL_COUNT];   // loaded on first use (a few hundred bytes each)
