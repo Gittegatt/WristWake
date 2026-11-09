@@ -183,6 +183,10 @@ AlarmStatus comms_status(void) {
   return s_status;
 }
 
+int comms_status_slot(void) {
+  return s_status_slot;
+}
+
 // ---------------------------------------------------------------------------
 // Receive: settings from the settings page
 // ---------------------------------------------------------------------------

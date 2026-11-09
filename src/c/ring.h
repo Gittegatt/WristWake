@@ -27,3 +27,6 @@ bool ring_is_active(void);
 // Stop from the phone (settings page): ends a ringing alarm, also during a challenge, or
 // cancels a running snooze. Returns true if something was stopped.
 bool ring_stop_remote(void);
+
+// Turns a one-time alarm off after it has rung (no effect on repeating alarms)
+void ring_end_one_time(int slot);

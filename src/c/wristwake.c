@@ -71,6 +71,8 @@ int main(void) {
   // Safety net: "ringing" is stored, but this start is not an alarm, so the last ringing
   // ended without snooze or stop (e.g. the app was closed before the status could be saved)
   if (!ring_mask && comms_status() == ALARM_STATUS_RINGING) {
+    int slot = comms_status_slot();
+    if (slot >= 1 && slot <= ALARM_SLOTS) ring_end_one_time(slot);   // rings only once
     comms_set_status(ALARM_STATUS_IDLE, 0);
   }
 

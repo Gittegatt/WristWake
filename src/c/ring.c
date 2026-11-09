@@ -215,24 +215,34 @@ static void prv_snooze(void) {
   prv_finish(buf);
 }
 
+// The ringing alarms are over: no snooze any more, one-time alarms turn themselves off
+// (they ring only once, also if the ringing was cut off)
+static void prv_end_alarms(void) {
+  store_batch_begin();
+  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
+    if (!prv_in_mask(slot)) continue;
+    store_set_snooze_until(slot, 0);
+    ring_end_one_time(slot);
+  }
+  store_batch_end();
+  scheduler_update();
+}
+
+void ring_end_one_time(int slot) {
+  Alarm a = *store_get(slot);
+  if (a.used && a.days == 0 && a.enabled) {
+    a.enabled = 0;
+    store_save(slot, &a);
+  }
+}
+
 static void prv_dismiss(void) {
   if (s_state != RING_ACTIVE && s_state != RING_CHALLENGE) return;
   if (s_test) {
     prv_finish(TR("Test ended", "Test beendet"));
     return;
   }
-  store_batch_begin();
-  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
-    if (!prv_in_mask(slot)) continue;
-    store_set_snooze_until(slot, 0);
-    Alarm a = *store_get(slot);
-    if (a.used && a.days == 0 && a.enabled) {
-      a.enabled = 0;  // a one-time alarm turns itself off after ringing
-      store_save(slot, &a);
-    }
-  }
-  store_batch_end();
-  scheduler_update();
+  prv_end_alarms();
   comms_set_status(ALARM_STATUS_DISMISSED, prv_first_slot());
   prv_finish(TR("Alarm stopped", "Wecker beendet"));
 }
@@ -248,11 +258,7 @@ bool ring_stop_remote(void) {
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     if (!store_snooze_until(slot)) continue;
     store_set_snooze_until(slot, 0);
-    Alarm a = *store_get(slot);
-    if (a.used && a.days == 0 && a.enabled) {
-      a.enabled = 0;  // a one-time alarm turns itself off
-      store_save(slot, &a);
-    }
+    ring_end_one_time(slot);
     if (!first) first = slot;
   }
   store_batch_end();
@@ -602,6 +608,7 @@ static void prv_unload(Window *window) {
   // nothing rings any more, so "ringing" must not stay
   if (!s_test && (s_state == RING_ACTIVE || s_state == RING_CHALLENGE)) {
     s_state = RING_DONE;
+    prv_end_alarms();
     comms_set_status(ALARM_STATUS_IDLE, prv_first_slot());
   }
   alert_stop();
