@@ -15,9 +15,9 @@ For the darkness color scheme by sunrise and sunset, WristWake uses the approxim
 I designed the concept, the features and the look of this watchapp myself, down to the menu items, ringtones and vibration patterns. For the coding, I used Claude Code.
 
 With this alarm app, I wanted to:
-- keep it intuitive and easy to use, close to the native Pebble alarm app
-- sync my alarms with Home Assistant
+- keep it clean, intuitive and easy to use
 - set alarms in bed without grabbing my phone
+- sync my alarms with Home Assistant
 - customization
 - make sure I really get up
 
@@ -25,17 +25,22 @@ Features:
 - up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
 - 18 ringtones, including 5 rising ones, each with 4 volume levels
 - vibration patterns, with or without a ringtone
-- one of 30 symbols per alarm (sun, moon, work, sport and more), shown in the list, when ringing and in Home Assistant
+- one of 30 symbols per alarm, shown in the list, when ringing and in Home Assistant
 - snooze off: only holding the bottom button stops the alarm
-- wake-up challenge: repeat a random button sequence (Follow, 4–10 steps) or guess and remember it (Remember, 3–5 steps) before the alarm stops
-- 10 color presets or your own colors, optionally a second scheme for darkness (fixed times or by sunrise and sunset)
-- left-handed mode
-- in English and German: German if your watch is set to German, English otherwise
+- hold select button to toggle on / off
+- wake-up challenge:
+    - easy: repeat a random button sequence (Follow, 4–10 steps)
+    - difficult: guess and remember it (Remember, 3–5 steps) before the alarm stops
+- 10 color presets or 2 with your own colors
+- optionally a second scheme for darkness
+    - fixed times or by sunrise and sunset
+- right- and left-handed mode
+- Languages: English, German (request a new one if you like the app)
 
 Coming next:
 - Android companion alarm app that enables two-way sync between Home Assistant, your Pebble and your Android phone.
 
-If you would like a new feature, please let me know.
+If you would like a new feature, e.g. new language please let me know.
 
 ## Run in the emulator
 
