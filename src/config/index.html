@@ -115,7 +115,7 @@
   .offset { display: flex; gap: 0.4rem; align-items: center; }
   .offset select { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
              font: inherit; min-height: 2.1rem; padding: 0 0.5rem; }
-  .preview-label { font-size: 1rem; color: var(--text); padding: 0.7rem 0 0.7rem; }   /* like the row labels */
+  .preview-box { padding-top: 0.7rem; }   /* preview right below its color scheme */
   .shots { display: flex; gap: 0.6rem; }
   .shots canvas { flex: 1; min-width: 0; width: 50%; height: auto; border-radius: 0.25rem; }
 </style>
@@ -224,6 +224,13 @@
         </select>
       </label>
     </div>
+    <div id="custom-day" class="hidden"></div>
+    <div class="component preview-box" id="preview-wrap">
+      <div id="shots" class="shots">
+        <canvas id="shot-list" width="200" height="228"></canvas>
+        <canvas id="shot-menu" width="200" height="228"></canvas>
+      </div>
+    </div>
     <div class="component component-select">
       <label class="tap-highlight"><span data-t="sched_label"></span>
         <span class="value" id="sched-label"></span>
@@ -241,6 +248,13 @@
           <select id="theme-night"></select>
         </label>
       </div>
+      <div id="custom-night" class="hidden"></div>
+      <div class="component preview-box" id="preview-night-wrap">
+        <div id="shots-night" class="shots">
+          <canvas id="shot-list-night" width="200" height="228"></canvas>
+          <canvas id="shot-menu-night" width="200" height="228"></canvas>
+        </div>
+      </div>
       <div id="sched-times">
         <div class="component"><label><span data-t="day_from"></span><input id="day-time" type="time"></label></div>
         <div class="component"><label><span data-t="night_from"></span><input id="night-time" type="time"></label>
@@ -254,19 +268,6 @@
           <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
           <select id="night-h"></select>h <select id="night-m"></select>min</span></label>
           <p id="sun-today" class="status"></p></div>
-      </div>
-    </div>
-    <div id="custom" class="hidden"></div>
-    <div class="component" id="preview-wrap"><p id="preview-label" class="preview-label"></p>
-      <div id="shots" class="shots">
-        <canvas id="shot-list" width="200" height="228"></canvas>
-        <canvas id="shot-menu" width="200" height="228"></canvas>
-      </div>
-    </div>
-    <div class="component hidden" id="preview-night-wrap"><p class="preview-label" data-t="preview_night"></p>
-      <div id="shots-night" class="shots">
-        <canvas id="shot-list-night" width="200" height="228"></canvas>
-        <canvas id="shot-menu-night" width="200" height="228"></canvas>
       </div>
     </div>
   </div>
@@ -315,7 +316,6 @@
       sun_hint: 'Verschiebung in Stunden und Minuten, z. B. + 0 h 30 min = eine halbe Stunde nach Sonnenuntergang. Der Standort kommt vom Handy (auf ca. 1 km gerundet) und bleibt dort. Die Uhr bekommt nur die Zeiten der nächsten 60 Tage, bei jedem Öffnen der App neu.',
       sun_today: 'Heute: Tageslicht ab {d}, Dunkelheit ab {n}', sun_place: 'Standort: {p} (ca. 1 km genau)', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
       err_same_times: 'Tageslicht und Dunkelheit brauchen verschiedene Uhrzeiten.',
-      preview_day: 'Tageslicht', preview_night: 'Dunkelheit',
       c_bg: 'Hintergrund', c_fg: 'Schrift', c_hlbg: 'Auswahl-Hintergrund', c_hlfg: 'Auswahl-Schrift',
       preview_normal: 'Wecker 07:00', preview_sel: 'Ausgewählt 06:30',
       save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
@@ -357,7 +357,6 @@
       sun_hint: 'Offset in hours and minutes, e.g. + 0 h 30 min = half an hour after sunset. The position comes from the phone (rounded to about 1 km) and stays there. The watch only gets the times of the next 60 days, refreshed every time the app opens.',
       sun_today: 'Today: daylight from {d}, darkness from {n}', sun_place: 'Location: {p} (about 1 km)', err_location: 'Position not available. Please allow location access in the Pebble app.',
       err_same_times: 'Daylight and darkness need different times.',
-      preview_day: 'Daylight', preview_night: 'Darkness',
       c_bg: 'Background', c_fg: 'Text', c_hlbg: 'Selection background', c_hlfg: 'Selection text',
       preview_normal: 'Alarm 07:00', preview_sel: 'Selected 06:30',
       save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
@@ -541,31 +540,29 @@
     document.body.appendChild(wrap);
   }
 
-  // Color settings for every custom scheme that is used (daylight or darkness)
-  function renderColors() {
-    var box = $('custom');
+  // Color rows of a custom scheme, right below the select that uses it (none for other schemes)
+  function fillCustom(box, theme) {
     box.innerHTML = '';
-    var used = CUSTOM_THEMES.filter(function (theme) {
-      return currentTheme() === theme || (schedMode() !== 0 && nightTheme() === theme);
+    var set = CUSTOM_THEMES.indexOf(theme);
+    box.classList.toggle('hidden', set < 0);
+    if (set < 0) return;
+    COLOR_KEYS.forEach(function (key, i) {
+      var row = document.createElement('div');
+      row.className = 'component component-color';
+      row.innerHTML = '<label class="tap-highlight"><span></span><span class="value"></span></label>';
+      row.querySelector('span').textContent = t(key);
+      row.querySelector('.value').style.background = displayColor(colors[set][i]);
+      row.querySelector('label').addEventListener('click', function () { openColorPicker(set, i); });
+      box.appendChild(row);
     });
-    box.classList.toggle('hidden', used.length === 0);
-    used.forEach(function (theme) {
-      var set = CUSTOM_THEMES.indexOf(theme);
-      var label = document.createElement('div');
-      label.className = 'component';
-      label.innerHTML = '<p class="preview-label"></p>';
-      label.firstChild.textContent = t(set ? 'custom2' : 'custom1');
-      box.appendChild(label);
-      COLOR_KEYS.forEach(function (key, i) {
-        var row = document.createElement('div');
-        row.className = 'component component-color';
-        row.innerHTML = '<label class="tap-highlight"><span></span><span class="value"></span></label>';
-        row.querySelector('span').textContent = t(key);
-        row.querySelector('.value').style.background = displayColor(colors[set][i]);
-        row.querySelector('label').addEventListener('click', function () { openColorPicker(set, i); });
-        box.appendChild(row);
-      });
-    });
+  }
+
+  // Colors below the daylight scheme; below the darkness scheme only if it is a different one
+  function renderColors() {
+    var day = currentTheme();
+    var night = schedMode() !== 0 ? nightTheme() : -1;
+    fillCustom($('custom-day'), day);
+    fillCustom($('custom-night'), night !== day ? night : -1);
     renderPreview();
   }
 
@@ -647,12 +644,11 @@
          : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
   }
 
-  // Daylight preview always; with a daylight/darkness switch also the darkness preview below it
+  // Daylight preview below its scheme; with a daylight/darkness switch also the darkness preview
   function renderPreview() {
     var day = currentTheme();
     var select = $('theme');
     $('theme-label').textContent = select.options[select.selectedIndex].textContent;
-    $('preview-label').textContent = schedMode() ? t('preview_day') : '';
     renderShots(roleColors(day, baseColors(day)), '');
     var withNight = schedMode() !== 0;
     $('preview-night-wrap').classList.toggle('hidden', !withNight);
