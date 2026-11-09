@@ -10,7 +10,7 @@
 #define ALARM_ROW_H 66   // 3 alarms per page: (228 - 28) / 3
 #define NEW_ROW_H 46
 #define DAYS_W 74        // width of the weekday letters
-#define ZZ_W 22          // "zZ" (snooze on) right of the time
+#define ZZ_W 22          // "zZ" (snooze on) left of the toggle
 
 static Window *s_window;
 static Layer *s_header;
@@ -88,18 +88,16 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
                      GTextAlignmentLeft, NULL);
   GSize size = graphics_text_layout_get_content_size(time_buf, time_font, time_rect,
                                                      GTextOverflowModeFill, GTextAlignmentLeft);
-  int after_x = time_rect.origin.x + size.w + 4;   // room right of the time
+  int after_x = time_rect.origin.x + size.w + 4;   // AM/PM right of the time
   GFont small_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   if (ampm) {
     graphics_draw_text(ctx, ampm, small_font, GRect(after_x, 14, 30, 22), GTextOverflowModeFill,
                        GTextAlignmentLeft, NULL);
-    after_x += graphics_text_layout_get_content_size(ampm, small_font, GRect(0, 0, 30, 22),
-                                                     GTextOverflowModeFill, GTextAlignmentLeft).w + 4;
   }
-  // "zZ" right of the time when snoozing is possible (snooze on, no challenge)
+  // "zZ" at a fixed place left of the toggle when snoozing is possible (snooze on, no challenge)
   if (a->snooze > 0 && a->challenge == CHALLENGE_OFF) {
-    graphics_draw_text(ctx, "zZ", small_font, GRect(after_x, 14, ZZ_W, 22), GTextOverflowModeFill,
-                       GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, "zZ", small_font, GRect(b.size.w - UI_TOGGLE_W - 12 - ZZ_W, 11, ZZ_W, 22),
+                       GTextOverflowModeFill, GTextAlignmentRight, NULL);
   }
   ui_draw_toggle(ctx, GPoint(b.size.w - UI_TOGGLE_W - 8, 14), a->enabled, hl);
 
