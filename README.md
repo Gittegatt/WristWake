@@ -18,8 +18,8 @@ With this alarm app, I wanted to:
 - keep it intuitive and easy to use, close to the native Pebble alarm app
 - sync my alarms with Home Assistant
 - set alarms in bed without grabbing my phone
-- make sure I really get up
 - customization
+- make sure I really get up
 
 Features:
 - up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
