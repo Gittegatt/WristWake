@@ -19,7 +19,7 @@ With this alarm app, I wanted to:
 - sync my alarms with Home Assistant
 - set alarms in bed without grabbing my phone
 - make sure I really get up
-- customize the colors
+- customization
 
 Features:
 - up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
