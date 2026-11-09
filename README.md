@@ -85,6 +85,7 @@ src/pkjs/           JavaScript part (runs in the Pebble app on the phone)
 src/config/         settings page (bundled into the app)
 resources/images/   app icon for the watch launcher
 store/              icons and screenshots for the Pebble App Store
+docs/symbols.html   overview of the alarm symbols (watch tiles, Home Assistant icons)
 tools/              helper scripts (emulator, settings page, preview images)
 package.json        project data (UUID, platforms, message keys)
 wscript             build rules
