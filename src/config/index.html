@@ -122,6 +122,15 @@
 <p id="loading" class="status" style="padding:0 0.75rem">…</p>
 
 <div id="content" class="hidden">
+  <div class="section hidden" id="stop-section">
+    <div class="component component-heading"><h4 data-t="stop_title"></h4></div>
+    <div class="component" style="padding-top:0.7rem">
+      <p id="stop-info" class="status" style="color:var(--text);font-size:1rem"></p>
+      <div class="buttons" style="padding-top:0.7rem"><button id="stop" class="primary" type="button" data-t="stop_button"></button></div>
+      <p id="stop-status" class="status"></p>
+      <div class="description" data-t="stop_hint"></div>
+    </div>
+  </div>
   <div class="section">
     <div class="component component-heading"><h4 data-t="ha_title"></h4></div>
     <div class="component">
@@ -281,6 +290,9 @@
       watch_title: 'Uhr', watch_name: 'Name der Uhr', watch_name_hint: 'Wird in Home Assistant als Gerätename verwendet.',
       sym_title: 'Wecker-Symbole', sym_help: 'Das Symbol eines Weckers wählst du auf der Uhr im Wecker-Menü unter „Symbol“. Hier legst du fest, wo es angezeigt wird.',
       sym_list: 'In der Wecker-Liste', sym_menu: 'Im Wecker-Menü', sym_ring: 'Beim Klingeln', sym_ha: 'In Home Assistant (als Icon)',
+      stop_title: 'Wecker klingelt', stop_button: 'Wecker beenden', stop_ringing: '{n} · {t} klingelt gerade.',
+      stop_snoozed: '{n} · {t} schlummert gerade.', stop_done: 'Wecker beendet.',
+      stop_hint: 'Beendet den Wecker sofort auf der Uhr, auch während einer Weckaufgabe. Erscheint nur, solange ein Wecker klingelt oder schlummert. Beim Schlummern muss WristWake dafür auf der Uhr geöffnet sein.',
       left_handed: 'Linkshänder-Modus',
       left_handed_hint: 'Einschalten, wenn die Uhr im Linkshänder-Modus läuft (Bildschirm gedreht, Knöpfe links). Die Tasten-Symbole beim Klingeln und bei Rückfragen erscheinen dann links. Die Uhr kann diese Systemeinstellung Apps noch nicht mitteilen.',
       alarms_title: 'Wecker', no_alarms: 'Noch keine Wecker. Wecker legst du auf der Uhr mit „+ NEU“ an.',
@@ -320,6 +332,9 @@
       watch_title: 'Watch', watch_name: 'Watch name', watch_name_hint: 'Used as the device name in Home Assistant.',
       sym_title: 'Alarm symbols', sym_help: 'Choose the symbol of an alarm on the watch in the alarm menu under “Symbol”. Here you set where it is shown.',
       sym_list: 'In the alarm list', sym_menu: 'In the alarm menu', sym_ring: 'When ringing', sym_ha: 'In Home Assistant (as icon)',
+      stop_title: 'Alarm ringing', stop_button: 'Stop alarm', stop_ringing: '{n} · {t} is ringing.',
+      stop_snoozed: '{n} · {t} is snoozing.', stop_done: 'Alarm stopped.',
+      stop_hint: 'Stops the alarm on the watch right away, also during a challenge. Only shown while an alarm is ringing or snoozing. While snoozing, WristWake has to be open on the watch.',
       left_handed: 'Left-handed mode',
       left_handed_hint: 'Turn on if the watch runs in left-handed mode (screen rotated, buttons on the left). The button symbols when ringing and in confirmations then appear on the left. The watch cannot pass this system setting to apps yet.',
       alarms_title: 'Alarms', no_alarms: 'No alarms yet. Create alarms on the watch with “+ NEW”.',
@@ -714,6 +729,19 @@
     return !bad;
   }
 
+  // "Stop alarm": only while an alarm is ringing or snoozing
+  function renderStop() {
+    var active = state && (state.st === 'ringing' || state.st === 'snoozed');
+    $('stop-section').classList.toggle('hidden', !active);
+    if (!active) return;
+    var a = null;
+    (state.a || []).forEach(function (x) { if (x.s === state.ss) a = x; });
+    var name = a && a.n ? a.n : (lang === 'de' ? 'Wecker' : 'Alarm');
+    var time = a ? pad(a.h) + ':' + pad(a.m) : '';
+    $('stop-info').textContent = t(state.st === 'ringing' ? 'stop_ringing' : 'stop_snoozed')
+      .replace('{n}', name).replace('{t}', time);
+  }
+
   function render() {
     $('watch-name').value = state.wn || '';
     $('left-handed').checked = !!state.lh;
@@ -733,6 +761,7 @@
     setOffset('day', ts[4]);
     setOffset('night', ts[5]);
     renderSchedule();
+    renderStop();
     renderHa();
     renderAlarms();
     renderColors();
@@ -827,6 +856,19 @@
     }).catch(function (e) {
       setStatus($('ha-status'), e.message, 'err');
     }).then(function () { $('ha-connect').disabled = false; message.token = null; });
+  });
+
+  $('stop').addEventListener('click', function () {
+    if (!hasBridge()) return closeWith({ stop: true });
+    var button = $('stop');
+    button.disabled = true;
+    call({ type: 'stop' }).then(function () {
+      setStatus($('stop-status'), t('stop_done'), 'ok');
+      state.st = 'dismissed';
+      setTimeout(renderStop, 1500);
+    }).catch(function (e) {
+      setStatus($('stop-status'), t('err_' + e.message) !== 'err_' + e.message ? t('err_' + e.message) : e.message, 'err');
+    }).then(function () { button.disabled = false; });
   });
 
   $('ha-disconnect').addEventListener('click', function () {

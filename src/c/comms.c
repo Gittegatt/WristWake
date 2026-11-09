@@ -236,6 +236,11 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   bool changed = false;
   Tuple *t;
 
+  if (dict_find(iter, MESSAGE_KEY_STOP_ALARM)) {   // "Stop alarm" on the settings page
+    if (!ring_stop_remote()) comms_send_state();  // nothing to stop: send the current state anyway
+    return;
+  }
+
   if ((t = dict_find(iter, MESSAGE_KEY_TEST_SLOT))) {
     prv_start_test(t->value->int32);
     return;

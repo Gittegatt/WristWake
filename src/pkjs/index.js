@@ -639,6 +639,10 @@ Pebble.addEventListener('webviewclosed', function (e) {
     sendTest(msg.test, function () {});
     return;
   }
+  if (msg.stop) {
+    sendToWatch({ STOP_ALARM: 1 }, function () {});
+    return;
+  }
   if (msg.settings) {
     applySettings(msg.settings, function (err) {
       if (err) notify('WristWake', de ? 'Einstellungen konnten nicht an die Uhr gesendet werden.'
@@ -674,6 +678,10 @@ Pebble.addEventListener('configmessage', function (e) {
     });
   } else if (msg.type === 'save') {
     applySettings(msg.settings, function (err) {
+      e.respond(err ? { error: err } : { ok: true });
+    });
+  } else if (msg.type === 'stop') {
+    sendToWatch({ STOP_ALARM: 1 }, function (err) {
       e.respond(err ? { error: err } : { ok: true });
     });
   } else if (msg.type === 'sun') {

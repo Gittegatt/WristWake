@@ -40,7 +40,8 @@
       "THEME_SCHEDULE",
       "SUN_TIMES",
       "HA_CONFIG",
-      "SYMBOL_FLAGS"
+      "SYMBOL_FLAGS",
+      "STOP_ALARM"
     ],
     "resources": {
       "media": [

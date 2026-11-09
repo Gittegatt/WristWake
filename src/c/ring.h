@@ -23,3 +23,7 @@ void ring_show_test(const AlertParams *params, bool can_snooze, const RingChalle
 
 // true while the ringing screen is open
 bool ring_is_active(void);
+
+// Stop from the phone (settings page): ends a ringing alarm, also during a challenge, or
+// cancels a running snooze. Returns true if something was stopped.
+bool ring_stop_remote(void);

@@ -237,6 +237,31 @@ static void prv_dismiss(void) {
   prv_finish(TR("Alarm stopped", "Wecker beendet"));
 }
 
+bool ring_stop_remote(void) {
+  if (s_window && (s_state == RING_ACTIVE || s_state == RING_CHALLENGE)) {
+    prv_dismiss();
+    return true;
+  }
+  // Snoozing (no ringing screen): cancel the snooze like a dismiss
+  int first = 0;
+  store_batch_begin();
+  for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
+    if (!store_snooze_until(slot)) continue;
+    store_set_snooze_until(slot, 0);
+    Alarm a = *store_get(slot);
+    if (a.used && a.days == 0 && a.enabled) {
+      a.enabled = 0;  // a one-time alarm turns itself off
+      store_save(slot, &a);
+    }
+    if (!first) first = slot;
+  }
+  store_batch_end();
+  if (!first) return false;
+  scheduler_update();
+  comms_set_status(ALARM_STATUS_DISMISSED, first);
+  return true;
+}
+
 static void prv_auto_snooze(void *context) {
   s_timer = NULL;
   prv_snooze();
