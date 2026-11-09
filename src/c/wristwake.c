@@ -19,11 +19,16 @@ static void prv_store_changed(void) {
   comms_send_state();
 }
 
-// New theme from the phone: rebuild the UI (not while an alarm is ringing)
+// New theme (from the phone or day/night switch): rebuild the UI (not while an alarm is ringing)
 static void prv_theme_changed(void) {
   if (ring_is_active()) return;
   window_stack_pop_all(false);
   alarm_list_show();
+}
+
+// Every minute: switch between the day and night scheme when its time has come
+static void prv_minute_tick(struct tm *tick_time, TimeUnits changed) {
+  if (theme_update()) prv_theme_changed();
 }
 
 // Alarm rings while the app is open
@@ -58,6 +63,7 @@ int main(void) {
   // Recompute all times on every start (handles time zone and DST changes)
   scheduler_update();
   wakeup_service_subscribe(prv_wakeup);
+  tick_timer_service_subscribe(MINUTE_UNIT, prv_minute_tick);
 
   if (ring_mask) {
     ring_show(ring_mask);   // after snooze/stop the app closes again

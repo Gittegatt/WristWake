@@ -5,6 +5,8 @@
 // - register the device with Home Assistant once; the token is discarded afterwards
 // - without network, remember the last state and send it next time
 // - pass settings from the settings page on to the watch
+// - day/night color scheme by the sun: compute sunrise/sunset for the next days from the phone's
+//   position and send only the times to the watch (the position stays on the phone)
 //
 // The watch is the source of truth. Only a copy of the state and the webhook addresses
 // are stored here (never the token).
@@ -14,6 +16,7 @@ var LS_HA = 'ww_ha';            // {url, webhook_id, cloudhook_url, remote_ui_ur
 var LS_PENDING = 'ww_pending';  // true = last state has not reached Home Assistant yet
 var LS_DISABLED = 'ww_disabled';// entities disabled in Home Assistant (unique_id -> true)
 var LS_NAMES = 'ww_sensor_names'; // display names registered with Home Assistant (unique_id -> name)
+var LS_LOCATION = 'ww_location';  // last position for the sun times, rounded to about 1 km {lat, lon}
 
 var NAME_SEPARATOR = '\x1f';
 var DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -337,6 +340,104 @@ function updateRegistration(deviceName) {
 }
 
 // ---------------------------------------------------------------------------
+// Sun times for the day/night color scheme
+// ---------------------------------------------------------------------------
+
+var SUN_DAYS = 60;   // THEME_SUN_DAYS in theme.h
+var sunSent = false; // sun times sent in this session
+
+// Sunrise and sunset (standard formulas as used by NOAA and the suncalc library).
+// Returns {rise, set} as Date, or {polar: 'day'|'night'}.
+function sunTimes(date, lat, lon) {
+  var rad = Math.PI / 180, dayMs = 86400000, J1970 = 2440588, J2000 = 2451545, J0 = 0.0009;
+  var e = rad * 23.4397;
+  var lw = rad * -lon, phi = rad * lat;
+  var d = date.valueOf() / dayMs - 0.5 + J1970 - J2000;
+  var n = Math.round(d - J0 - lw / (2 * Math.PI));
+  var ds = J0 + lw / (2 * Math.PI) + n;
+  var M = rad * (357.5291 + 0.98560028 * ds);
+  var C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  var L = M + C + rad * 102.9372 + Math.PI;
+  var dec = Math.asin(Math.sin(e) * Math.sin(L));
+  var noon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  var h0 = -0.833 * rad;
+  var cosW = (Math.sin(h0) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+  if (cosW > 1) return { polar: 'night' };
+  if (cosW < -1) return { polar: 'day' };
+  var w = Math.acos(cosW);
+  var set = J2000 + (J0 + (w + lw) / (2 * Math.PI) + n) + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  var rise = noon - (set - noon);
+  function toDate(j) { return new Date((j + 0.5 - J1970) * dayMs); }
+  return { rise: toDate(rise), set: toDate(set) };
+}
+
+// Sunrise/sunset of a local day in minutes after local midnight (polar night: equal, polar day: 0/1440)
+function sunMinutes(y, m, d, loc) {
+  var t = sunTimes(new Date(y, m, d, 12), loc.lat, loc.lon);
+  if (t.polar === 'night') return [0, 0];
+  if (t.polar === 'day') return [0, 1440];
+  return [t.rise.getHours() * 60 + t.rise.getMinutes(), t.set.getHours() * 60 + t.set.getMinutes()];
+}
+
+// Position of the phone (rounded); falls back to the last known one
+function getLocation(callback) {
+  var last = load(LS_LOCATION, null);
+  if (!navigator.geolocation) return callback(last ? null : 'location', last);
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    var loc = { lat: Math.round(pos.coords.latitude * 100) / 100, lon: Math.round(pos.coords.longitude * 100) / 100 };
+    store(LS_LOCATION, loc);
+    callback(null, loc);
+  }, function () {
+    callback(last ? null : 'location', last);
+  }, { timeout: 15000, maximumAge: 6 * 3600 * 1000 });
+}
+
+// Sends the sun times of the next SUN_DAYS days to the watch
+function sendSunTimes(callback) {
+  callback = callback || function () {};
+  getLocation(function (err, loc) {
+    if (err) {
+      log('No position for the sun times');
+      return callback(err);
+    }
+    var now = new Date();
+    var first = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+    var bytes = [first & 0xFF, (first >> 8) & 0xFF];
+    for (var i = 0; i < SUN_DAYS; i++) {
+      var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      sunMinutes(day.getFullYear(), day.getMonth(), day.getDate(), loc).forEach(function (v) {
+        bytes.push(v & 0xFF, (v >> 8) & 0xFF);
+      });
+    }
+    sendToWatch({ SUN_TIMES: bytes }, function (sendErr) {
+      if (!sendErr) sunSent = true;
+      callback(sendErr);
+    });
+  });
+}
+
+// Today's sun times for the settings page
+function sunToday(callback) {
+  getLocation(function (err, loc) {
+    if (err) return callback(err);
+    var now = new Date();
+    var t = sunMinutes(now.getFullYear(), now.getMonth(), now.getDate(), loc);
+    callback(null, { rise: t[0], set: t[1] });
+  });
+}
+
+function int16Bytes(v) {
+  v = v & 0xFFFF;
+  return [v & 0xFF, (v >> 8) & 0xFF];
+}
+
+// mode, night scheme, day/night minute (uint16 LE), day/night offset (int16 LE); see comms.c
+function scheduleBytes(sc) {
+  return [sc.mode, sc.night].concat(int16Bytes(sc.day), int16Bytes(sc.night_time),
+                                    int16Bytes(sc.day_offset), int16Bytes(sc.night_offset));
+}
+
+// ---------------------------------------------------------------------------
 // Watch
 // ---------------------------------------------------------------------------
 
@@ -358,8 +459,10 @@ function applySettings(s, callback) {
     WATCH_NAME: s.watch_name,
     LEFT_HANDED: s.left_handed ? 1 : 0
   };
+  if (s.schedule) dict.THEME_SCHEDULE = scheduleBytes(s.schedule);
   sendToWatch(dict, function (err) {
     if (!err) updateRegistration(s.watch_name);
+    if (!err && s.schedule && s.schedule.mode === 2) return sendSunTimes(function () { callback(null); });
     callback(err);
   });
 }
@@ -389,6 +492,11 @@ Pebble.addEventListener('appmessage', function (e) {
   }
   store(LS_STATE, state);
   pushState();
+  // Day/night by the sun: fresh times once per app start
+  if (!sunSent && state.ts && state.ts[0] === 2) {
+    sunSent = true;
+    sendSunTimes();
+  }
   if (typeof Pebble.sendConfigMessage === 'function') {
     Pebble.sendConfigMessage({ type: 'state', state: state, ha: haInfo() });
   }
@@ -460,6 +568,10 @@ Pebble.addEventListener('configmessage', function (e) {
   } else if (msg.type === 'save') {
     applySettings(msg.settings, function (err) {
       e.respond(err ? { error: err } : { ok: true });
+    });
+  } else if (msg.type === 'sun') {
+    sunToday(function (err, today) {
+      e.respond(err ? { error: err } : { ok: true, today: today });
     });
   } else if (msg.type === 'connect') {
     var token = msg.token;

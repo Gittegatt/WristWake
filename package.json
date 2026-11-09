@@ -25,7 +25,8 @@
     ],
     "configPage": "src/config/index.html",
     "capabilities": [
-      "configurable"
+      "configurable",
+      "location"
     ],
     "messageKeys": [
       "STATE",
@@ -35,7 +36,9 @@
       "NAMES",
       "WATCH_NAME",
       "TEST_SLOT",
-      "LEFT_HANDED"
+      "LEFT_HANDED",
+      "THEME_SCHEDULE",
+      "SUN_TIMES"
     ],
     "resources": {
       "media": [

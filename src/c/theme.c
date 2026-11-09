@@ -4,11 +4,24 @@
 #define KEY_THEME_MODE   10
 #define KEY_THEME_CUSTOM 11   // 4 bytes: GColor8 of bg, fg, hl_bg, hl_fg
 #define KEY_LEFT_HANDED  12
+#define KEY_THEME_SCHED  13   // ThemeSchedule
+#define KEY_THEME_SUN    14   // SunTable
 
 static Theme s_theme;
 static bool s_left_handed;
 static ThemeMode s_mode = THEME_CERULEAN;
 static ThemeBase s_custom;
+static ThemeSchedule s_sched = {.mode = THEME_SCHED_OFF, .night = THEME_CERULEAN_NIGHT,
+                                .day_min = 7 * 60, .night_min = 21 * 60};
+static ThemeMode s_active;   // scheme currently shown (day or night)
+
+typedef struct {
+  uint16_t first_day;
+  uint8_t count;
+  uint8_t reserved;
+  uint16_t rise_set[2 * THEME_SUN_DAYS];
+} SunTable;
+static SunTable s_sun;
 
 // Light: the original design
 static const ThemeBase LIGHT_BASE = {
@@ -94,20 +107,111 @@ static void prv_build_preset(const ThemePreset *p) {
   s_theme.bar_fg = (GColor) {.argb = p->bar_fg};
 }
 
-static void prv_apply(void) {
-  switch (s_mode) {
+static void prv_apply(ThemeMode mode) {
+  s_active = mode;
+  switch (mode) {
     case THEME_DARK:   prv_build_dark(); break;
     case THEME_CUSTOM: prv_build_custom(&s_custom); break;
     case THEME_CERULEAN: prv_build_preset(&CERULEAN_PRESET); break;
     case THEME_LIGHT:  prv_build_light(); break;
     default:
-      if (s_mode >= THEME_CERULEAN_NIGHT && s_mode < THEME_MODE_COUNT) {
-        prv_build_preset(&PRESETS[s_mode - THEME_CERULEAN_NIGHT]);
+      if (mode >= THEME_CERULEAN_NIGHT && mode < THEME_MODE_COUNT) {
+        prv_build_preset(&PRESETS[mode - THEME_CERULEAN_NIGHT]);
       } else {
         prv_build_light();
       }
       break;
   }
+}
+
+static void prv_sanitize_schedule(ThemeSchedule *s) {
+  if (s->mode > THEME_SCHED_SUN) s->mode = THEME_SCHED_OFF;
+  if (s->night >= THEME_MODE_COUNT) s->night = THEME_CERULEAN_NIGHT;
+  if (s->day_min >= 24 * 60) s->day_min = 7 * 60;
+  if (s->night_min >= 24 * 60) s->night_min = 21 * 60;
+  if (s->day_offset < -12 * 60 || s->day_offset > 12 * 60) s->day_offset = 0;
+  if (s->night_offset < -12 * 60 || s->night_offset > 12 * 60) s->night_offset = 0;
+}
+
+// Days since 1970-01-01 for a calendar date (proleptic Gregorian)
+static int32_t prv_days_from_civil(int y, int m, int d) {
+  y -= m <= 2;
+  int32_t era = (y >= 0 ? y : y - 399) / 400;
+  int32_t yoe = y - era * 400;
+  int32_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+  int32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return era * 146097 + doe - 719468;
+}
+
+static int prv_wrap_day(int minutes) {
+  minutes %= 24 * 60;
+  return minutes < 0 ? minutes + 24 * 60 : minutes;
+}
+
+// Is it day at minute "now" if the day starts at "day" and the night at "night"?
+static bool prv_is_day(int now, int day, int night) {
+  if (day == night) return true;
+  if (day < night) return now >= day && now < night;
+  return now >= day || now < night;
+}
+
+static ThemeMode prv_wanted_mode(void) {
+  if (s_sched.mode == THEME_SCHED_OFF) return s_mode;
+  time_t t = time(NULL);
+  struct tm *lt = localtime(&t);
+  int now = lt->tm_hour * 60 + lt->tm_min;
+  int day, night;
+  if (s_sched.mode == THEME_SCHED_TIMES) {
+    day = s_sched.day_min;
+    night = s_sched.night_min;
+  } else {
+    if (s_sun.count == 0) return s_mode;   // no sun times from the phone yet
+    int32_t today = prv_days_from_civil(lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday);
+    int32_t i = today - s_sun.first_day;
+    if (i < 0) i = 0;
+    if (i >= s_sun.count) i = s_sun.count - 1;   // table too old: use its last day
+    int rise = s_sun.rise_set[2 * i], set = s_sun.rise_set[2 * i + 1];
+    if (rise == set) return s_sched.night;        // polar night
+    if (rise == 0 && set >= 24 * 60) return s_mode;   // polar day
+    day = prv_wrap_day(rise + s_sched.day_offset);
+    night = prv_wrap_day(set + s_sched.night_offset);
+  }
+  return prv_is_day(now, day, night) ? s_mode : (ThemeMode)s_sched.night;
+}
+
+bool theme_update(void) {
+  ThemeMode wanted = prv_wanted_mode();
+  if (wanted == s_active) return false;
+  prv_apply(wanted);
+  return true;
+}
+
+ThemeMode theme_active(void) {
+  return s_active;
+}
+
+ThemeSchedule theme_schedule(void) {
+  return s_sched;
+}
+
+void theme_set_schedule(const ThemeSchedule *schedule) {
+  ThemeSchedule s = *schedule;
+  prv_sanitize_schedule(&s);
+  s_sched = s;
+  persist_write_data(KEY_THEME_SCHED, &s_sched, sizeof(s_sched));
+  prv_apply(prv_wanted_mode());
+}
+
+void theme_set_sun_table(uint16_t first_day, const uint8_t *rise_set, int count) {
+  if (count < 0) count = 0;
+  if (count > THEME_SUN_DAYS) count = THEME_SUN_DAYS;
+  s_sun.first_day = first_day;
+  s_sun.count = count;
+  for (int i = 0; i < 2 * count; i++) {   // little endian, byte by byte (no alignment needed)
+    s_sun.rise_set[i] = rise_set[2 * i] | (rise_set[2 * i + 1] << 8);
+  }
+  persist_write_data(KEY_THEME_SUN, &s_sun, sizeof(s_sun));
+  prv_apply(prv_wanted_mode());
 }
 
 void theme_init(void) {
@@ -122,7 +226,16 @@ void theme_init(void) {
     s_custom.hl_fg = (GColor) {.argb = raw[3] | 0xC0};
   }
   s_left_handed = persist_exists(KEY_LEFT_HANDED) && persist_read_bool(KEY_LEFT_HANDED);
-  prv_apply();
+  ThemeSchedule sched;
+  if (persist_read_data(KEY_THEME_SCHED, &sched, sizeof(sched)) == (int)sizeof(sched)) {
+    prv_sanitize_schedule(&sched);
+    s_sched = sched;
+  }
+  if (persist_read_data(KEY_THEME_SUN, &s_sun, sizeof(s_sun)) != (int)sizeof(s_sun) ||
+      s_sun.count > THEME_SUN_DAYS) {
+    s_sun.count = 0;
+  }
+  prv_apply(prv_wanted_mode());
 }
 
 bool theme_left_handed(void) {
@@ -159,5 +272,5 @@ void theme_set(ThemeMode mode, const ThemeBase *base) {
     uint8_t raw[4] = {base->bg.argb, base->fg.argb, base->hl_bg.argb, base->hl_fg.argb};
     persist_write_data(KEY_THEME_CUSTOM, raw, sizeof(raw));
   }
-  prv_apply();
+  prv_apply(prv_wanted_mode());
 }

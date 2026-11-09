@@ -11,7 +11,7 @@
 #endif
 
 #define KEY_STATUS 5          // storage key: status | (slot << 8)
-#define STATE_BUF_SIZE 2400
+#define STATE_BUF_SIZE 3000
 #define NAME_SEPARATOR '\x1f' // separates names in the NAMES field
 
 static const char *const STATUS_KEYS[] = {"idle", "ringing", "snoozed", "dismissed"};
@@ -64,9 +64,11 @@ static void prv_build_state(void) {
   len = prv_append_str(len, store_watch_name());
   APPEND(",\"lang\":\"%s\",\"t\":%ld,\"st\":\"%s\",\"ss\":%d",
          g_lang_de ? "de" : "en", (long)time(NULL), STATUS_KEYS[s_status], s_status_slot);
-  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"a\":[",
+  ThemeSchedule ts = theme_schedule();
+  APPEND(",\"th\":%d,\"tc\":[%d,%d,%d,%d],\"lh\":%d,\"ts\":[%d,%d,%d,%d,%d,%d],\"a\":[",
          theme_mode(), tc.bg.argb, tc.fg.argb, tc.hl_bg.argb, tc.hl_fg.argb,
-         theme_left_handed() ? 1 : 0);
+         theme_left_handed() ? 1 : 0, ts.mode, ts.night, ts.day_min, ts.night_min,
+         ts.day_offset, ts.night_offset);
   for (int slot = 1; slot <= ALARM_SLOTS; slot++) {
     const Alarm *a = store_get(slot);
     if (slot > 1) APPEND(",");
@@ -216,6 +218,25 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     }
     changed = true;
   }
+  ThemeMode active_before = theme_active();
+  if ((t = dict_find(iter, MESSAGE_KEY_THEME_SCHEDULE)) && t->type == TUPLE_BYTE_ARRAY &&
+      t->length >= 10) {
+    // mode, night scheme, day/night minute (uint16 LE), day/night offset (int16 LE)
+    const uint8_t *d = t->value->data;
+    ThemeSchedule ts = {
+      .mode = d[0], .night = d[1],
+      .day_min = d[2] | (d[3] << 8), .night_min = d[4] | (d[5] << 8),
+      .day_offset = (int16_t)(d[6] | (d[7] << 8)), .night_offset = (int16_t)(d[8] | (d[9] << 8)),
+    };
+    theme_set_schedule(&ts);
+    changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_SUN_TIMES)) && t->type == TUPLE_BYTE_ARRAY && t->length >= 2) {
+    // first day (uint16 LE), then sunrise/sunset pairs (uint16 LE each)
+    const uint8_t *d = t->value->data;
+    theme_set_sun_table(d[0] | (d[1] << 8), d + 2, (t->length - 2) / 4);
+  }
+  if (theme_active() != active_before) theme_changed = true;
   if ((t = dict_find(iter, MESSAGE_KEY_NAMES)) && t->type == TUPLE_CSTRING) {
     prv_split(t->value->cstring, NAME_SEPARATOR, prv_apply_name);
     changed = true;

@@ -103,6 +103,13 @@
   .component-toggle input:checked + .track { background: var(--orange); }
   .component-toggle input:checked + .track::after { left: 1.05rem; background: #fbeee6; }
   .hide, .hidden { display: none !important; }
+  input[type=time] { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
+             font: inherit; padding: 0.2rem 0.4rem; min-height: 2.1rem; color-scheme: dark; }
+  input[type=time].err { outline: 1px solid var(--err); }
+  .offset { display: flex; gap: 0.4rem; align-items: center; }
+  .offset select { background: var(--field); border-radius: 0.25rem; border: none; color: var(--text);
+             font: inherit; min-height: 2.1rem; padding: 0 0.5rem; }
+  .preview-label { font-size: 0.9rem; color: var(--desc); padding-bottom: 0.4rem; }
   .shots { display: flex; gap: 0.6rem; }
   .shots canvas { flex: 1; min-width: 0; width: 50%; height: auto; border-radius: 0.25rem; }
 </style>
@@ -159,7 +166,7 @@
   <div class="section" id="design-section">
     <div class="component component-heading"><h4 data-t="design_title"></h4></div>
     <div class="component component-select">
-      <label class="tap-highlight"><span data-t="design_label"></span>
+      <label class="tap-highlight"><span id="design-label"></span>
         <span class="value" id="theme-label"></span>
         <select id="theme">
           <option value="3">Cerulean Blue</option>
@@ -176,8 +183,42 @@
         </select>
       </label>
     </div>
+    <div class="component component-select">
+      <label class="tap-highlight"><span data-t="sched_label"></span>
+        <span class="value" id="sched-label"></span>
+        <select id="sched">
+          <option value="0" data-t="sched_off"></option>
+          <option value="1" data-t="sched_times"></option>
+          <option value="2" data-t="sched_sun"></option>
+        </select>
+      </label>
+    </div>
+    <div id="sched-box" class="hidden">
+      <div class="component component-select">
+        <label class="tap-highlight"><span data-t="night_label"></span>
+          <span class="value" id="night-label"></span>
+          <select id="theme-night"></select>
+        </label>
+      </div>
+      <div id="sched-times">
+        <div class="component"><label><span data-t="day_from"></span><input id="day-time" type="time"></label></div>
+        <div class="component"><label><span data-t="night_from"></span><input id="night-time" type="time"></label>
+          <p id="times-err" class="status err"></p></div>
+      </div>
+      <div id="sched-sun">
+        <div class="component"><label><span data-t="sun_day"></span>
+          <span class="offset"><select id="day-sign"><option value="1">+</option><option value="-1">−</option></select>
+          <input id="day-off" type="time"></span></label></div>
+        <div class="component"><label><span data-t="sun_night"></span>
+          <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
+          <input id="night-off" type="time"></span></label>
+          <p id="sun-today" class="status"></p>
+          <div class="description" data-t="sun_hint"></div></div>
+      </div>
+    </div>
     <div id="custom" class="hidden"></div>
-    <div class="component" id="preview-wrap"><div id="preview" class="preview"></div>
+    <div class="component" id="preview-wrap"><p id="preview-label" class="preview-label"></p>
+      <div id="preview" class="preview"></div>
       <div id="shots" class="shots">
         <canvas id="shot-list" width="200" height="228"></canvas>
         <canvas id="shot-menu" width="200" height="228"></canvas>
@@ -217,6 +258,14 @@
       name: 'Name',
       alarms_help: 'Uhrzeit, Tage, Ton und Vibration stellst du auf der Uhr im Wecker-Menü ein.',
       design_title: 'Design', light: 'Hell', dark: 'Dunkel',
+      design_day: 'Farbschema Tag', night_label: 'Farbschema Nacht',
+      sched_label: 'Tag/Nacht-Wechsel', sched_off: 'Aus', sched_times: 'Feste Uhrzeiten', sched_sun: 'Sonnenstand',
+      day_from: 'Tag ab', night_from: 'Nacht ab',
+      sun_day: 'Tag: Sonnenaufgang', sun_night: 'Nacht: Sonnenuntergang',
+      sun_hint: 'Verschiebung in Stunden:Minuten, z. B. + 00:30 = eine halbe Stunde nach Sonnenuntergang. Der Standort kommt vom Handy (auf ca. 1 km gerundet) und bleibt dort. Die Uhr bekommt nur die Zeiten der nächsten 60 Tage, bei jedem Öffnen der App neu.',
+      sun_today: 'Heute: Tag ab {d}, Nacht ab {n}', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
+      err_same_times: 'Tag und Nacht brauchen verschiedene Uhrzeiten.',
+      preview_day: 'Vorschau: Tag', preview_night: 'Vorschau: Nacht',
       c_bg: 'Hintergrund', c_fg: 'Schrift', c_hlbg: 'Auswahl-Hintergrund', c_hlfg: 'Auswahl-Schrift',
       preview_normal: 'Wecker 07:00', preview_sel: 'Ausgewählt 06:30',
       save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
@@ -246,6 +295,14 @@
       name: 'Name',
       alarms_help: 'Set time, days, sound and vibration on the watch in the alarm menu.',
       design_title: 'Design', light: 'Light', dark: 'Dark',
+      design_day: 'Day color scheme', night_label: 'Night color scheme',
+      sched_label: 'Day/night switch', sched_off: 'Off', sched_times: 'Fixed times', sched_sun: 'Sun position',
+      day_from: 'Day from', night_from: 'Night from',
+      sun_day: 'Day: sunrise', sun_night: 'Night: sunset',
+      sun_hint: 'Offset in hours:minutes, e.g. + 00:30 = half an hour after sunset. The position comes from the phone (rounded to about 1 km) and stays there. The watch only gets the times of the next 60 days, refreshed every time the app opens.',
+      sun_today: 'Today: day from {d}, night from {n}', err_location: 'Position not available. Please allow location access in the Pebble app.',
+      err_same_times: 'Day and night need different times.',
+      preview_day: 'Preview: day', preview_night: 'Preview: night',
       c_bg: 'Background', c_fg: 'Text', c_hlbg: 'Selection background', c_hlfg: 'Selection text',
       preview_normal: 'Alarm 07:00', preview_sel: 'Selected 06:30',
       save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
@@ -445,14 +502,63 @@
     return +$('theme').value || 0;
   }
 
+  // Day/night switch
+  var previewNight = false;   // preview shows the night scheme (after it was changed)
+  function schedMode() { return +$('sched').value || 0; }
+  function nightTheme() { return +$('theme-night').value || 0; }
+  function toTime(min) { min = ((min % 1440) + 1440) % 1440; return pad(Math.floor(min / 60)) + ':' + pad(min % 60); }
+  function fromTime(value) {
+    var m = /^(\d{1,2}):(\d{2})/.exec(value || '');
+    return m ? Math.min(+m[1], 23) * 60 + Math.min(+m[2], 59) : 0;
+  }
+  function selectLabel(id) {
+    var sel = $(id);
+    return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+  }
+  function offsetOf(prefix) { return (+$(prefix + '-sign').value) * fromTime($(prefix + '-off').value); }
+  function setOffset(prefix, minutes) {
+    $(prefix + '-sign').value = minutes < 0 ? '-1' : '1';
+    $(prefix + '-off').value = toTime(Math.abs(minutes));
+  }
+
+  var sunToday = null;   // today's sunrise/sunset from the phone {rise, set}
+  function renderSunToday() {
+    if (schedMode() !== 2 || !sunToday) return;
+    setStatus($('sun-today'), t('sun_today').replace('{d}', toTime(sunToday.rise + offsetOf('day')))
+                                             .replace('{n}', toTime(sunToday.set + offsetOf('night'))));
+  }
+  function loadSunToday() {
+    if (sunToday || !hasBridge()) return renderSunToday();
+    call({ type: 'sun' }).then(function (reply) {
+      sunToday = reply.today;
+      renderSunToday();
+    }).catch(function (e) {
+      setStatus($('sun-today'), t('err_' + e.message) !== 'err_' + e.message ? t('err_' + e.message) : e.message, 'err');
+    });
+  }
+
+  function renderSchedule() {
+    var mode = schedMode();
+    $('sched-label').textContent = selectLabel('sched');
+    $('night-label').textContent = selectLabel('theme-night');
+    $('design-label').textContent = mode ? t('design_day') : t('design_label');
+    $('sched-box').classList.toggle('hidden', mode === 0);
+    $('sched-times').classList.toggle('hidden', mode !== 1);
+    $('sched-sun').classList.toggle('hidden', mode !== 2);
+    if (mode === 2) loadSunToday();
+    validate();
+  }
+
   function renderPreview() {
-    var theme = currentTheme();
+    var night = schedMode() !== 0 && previewNight;
+    var theme = night ? nightTheme() : currentTheme();
+    $('preview-label').textContent = schedMode() ? t(night ? 'preview_night' : 'preview_day') : '';
     var c = theme === 1 ? [0xC0, 0xFF, 0xFF, 0xC0]
           : theme === 2 ? colors
           : (PRESETS[theme] || [0xFF, 0xC0, 0xC0, 0xFF]);
     var select = $('theme');
     $('theme-label').textContent = select.options[select.selectedIndex].textContent;
-    $('custom').classList.toggle('hidden', theme !== 2);
+    $('custom').classList.toggle('hidden', currentTheme() !== 2 && !(schedMode() && nightTheme() === 2));
     var p = $('preview');
     p.innerHTML = '<div></div><div></div>';
     p.children[0].textContent = t('preview_normal');
@@ -548,7 +654,11 @@
   }
 
   function validate() {
-    return true;
+    var bad = schedMode() === 1 && fromTime($('day-time').value) === fromTime($('night-time').value);
+    $('day-time').classList.toggle('err', bad);
+    $('night-time').classList.toggle('err', bad);
+    $('times-err').textContent = bad ? t('err_same_times') : '';
+    return !bad;
   }
 
   function render() {
@@ -557,6 +667,16 @@
     $('version').textContent = state.v ? 'WristWake ' + state.v : '';
     if (state.tc && state.tc.length === 4) colors = state.tc.slice();
     $('theme').value = String(state.th === undefined ? 3 : state.th);
+    // Night scheme: same choices as the day scheme
+    $('theme-night').innerHTML = $('theme').innerHTML;
+    var ts = state.ts && state.ts.length === 6 ? state.ts : [0, 4, 420, 1260, 0, 0];
+    $('sched').value = String(ts[0]);
+    $('theme-night').value = String(ts[1]);
+    $('day-time').value = toTime(ts[2]);
+    $('night-time').value = toTime(ts[3]);
+    setOffset('day', ts[4]);
+    setOffset('night', ts[5]);
+    renderSchedule();
     renderHa();
     renderAlarms();
     renderColors();
@@ -580,7 +700,10 @@
     return {
       theme: currentTheme(), colors: colors.slice(), names: names,
       watch_name: $('watch-name').value.trim() || 'Pebble',
-      left_handed: $('left-handed').checked
+      left_handed: $('left-handed').checked,
+      schedule: { mode: schedMode(), night: nightTheme(), day: fromTime($('day-time').value),
+                  night_time: fromTime($('night-time').value), day_offset: offsetOf('day'),
+                  night_offset: offsetOf('night') }
     };
   }
 
@@ -653,7 +776,13 @@
     call({ type: 'disconnect' }).then(function (reply) { haInfo = reply.ha; renderHa(); });
   });
 
-  $('theme').addEventListener('change', function () { renderColors(); });
+  $('theme').addEventListener('change', function () { previewNight = false; renderColors(); });
+  $('theme-night').addEventListener('change', function () { previewNight = true; renderSchedule(); renderColors(); });
+  $('sched').addEventListener('change', function () { renderSchedule(); renderColors(); });
+  ['day-time', 'night-time'].forEach(function (id) { $(id).addEventListener('change', validate); });
+  ['day-sign', 'day-off', 'night-sign', 'night-off'].forEach(function (id) {
+    $(id).addEventListener('change', renderSunToday);
+  });
 
   function start(data) {
     if (!data || !data.state) return false;
