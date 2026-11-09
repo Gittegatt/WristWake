@@ -9,7 +9,7 @@
 #define HEADER_H 28      // same as the alarm menu
 #define ALARM_ROW_H 66   // 3 alarms per page: (228 - 28) / 3
 #define NEW_ROW_H 46
-#define DAYS_W 74        // width of the weekday letters
+#define DAYS_W 84        // width of the weekday letters
 #define ZZ_W 22          // "zZ" (snooze on) left of the toggle
 
 static Window *s_window;
@@ -113,7 +113,7 @@ static void prv_draw_alarm(GContext *ctx, const Layer *cell, const Alarm *a) {
                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
                      GRect(name_x, 40, b.size.w - DAYS_W - 10 - name_x, 22),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  ui_draw_day_letters(ctx, GRect(b.size.w - DAYS_W - 6, 43, DAYS_W, 18), a->days, hl, off);
+  ui_draw_day_letters(ctx, GRect(b.size.w - DAYS_W - 6, 40, DAYS_W, 22), a->days, hl, off);
 }
 
 static void prv_draw_new(GContext *ctx, const Layer *cell) {

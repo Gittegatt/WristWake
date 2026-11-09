@@ -141,7 +141,7 @@ const char *ui_snooze_name(uint8_t minutes) {
 
 void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlighted, bool dimmed) {
   const Theme *t = theme();
-  GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
+  GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   if ((days & 0x7F) == 0) {
     graphics_context_set_text_color(ctx, highlighted ? (dimmed ? t->hl_dim : t->hl_fg)
                                                      : (dimmed ? t->dim : t->fg));
@@ -165,7 +165,7 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
     letter[0] = letters[i];
     // Wide letters (M, W) need more room than one step: widen the box around the center
     int center = rect.origin.x + i * step + step / 2;
-    graphics_draw_text(ctx, letter, font, GRect(center - 8, rect.origin.y, 16, rect.size.h),
+    graphics_draw_text(ctx, letter, font, GRect(center - 9, rect.origin.y, 18, rect.size.h),
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
   }
 }
