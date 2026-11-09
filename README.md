@@ -25,7 +25,7 @@ Features:
 - vibration patterns, with or without a ringtone
 - snooze off: only holding the bottom button stops the alarm
 - wake-up challenge: repeat a random button sequence (Follow) or guess and remember it (Remember) before the alarm stops
-- 10 color presets or your own colors, optionally a second scheme for the night (fixed times or by sunrise and sunset)
+- 10 color presets or your own colors, optionally a second scheme for darkness (fixed times or by sunrise and sunset)
 - left-handed mode
 - in English and German: German if your watch is set to German, English otherwise
 

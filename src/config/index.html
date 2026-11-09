@@ -208,10 +208,10 @@
       <div id="sched-sun">
         <div class="component"><label><span data-t="sun_day"></span>
           <span class="offset"><select id="day-sign"><option value="1">+</option><option value="-1">−</option></select>
-          <input id="day-off" type="time"></span></label></div>
+          <select id="day-h"></select>h <select id="day-m"></select>min</span></label></div>
         <div class="component"><label><span data-t="sun_night"></span>
           <span class="offset"><select id="night-sign"><option value="1">+</option><option value="-1">−</option></select>
-          <input id="night-off" type="time"></span></label>
+          <select id="night-h"></select>h <select id="night-m"></select>min</span></label>
           <p id="sun-today" class="status"></p>
           <div class="description" data-t="sun_hint"></div></div>
       </div>
@@ -258,14 +258,14 @@
       name: 'Name',
       alarms_help: 'Uhrzeit, Tage, Ton und Vibration stellst du auf der Uhr im Wecker-Menü ein.',
       design_title: 'Design', light: 'Hell', dark: 'Dunkel',
-      design_day: 'Farbschema Tag', night_label: 'Farbschema Nacht',
-      sched_label: 'Tag/Nacht-Wechsel', sched_off: 'Aus', sched_times: 'Feste Uhrzeiten', sched_sun: 'Sonnenstand',
-      day_from: 'Tag ab', night_from: 'Nacht ab',
-      sun_day: 'Tag: Sonnenaufgang', sun_night: 'Nacht: Sonnenuntergang',
-      sun_hint: 'Verschiebung in Stunden:Minuten, z. B. + 00:30 = eine halbe Stunde nach Sonnenuntergang. Der Standort kommt vom Handy (auf ca. 1 km gerundet) und bleibt dort. Die Uhr bekommt nur die Zeiten der nächsten 60 Tage, bei jedem Öffnen der App neu.',
-      sun_today: 'Heute: Tag ab {d}, Nacht ab {n}', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
-      err_same_times: 'Tag und Nacht brauchen verschiedene Uhrzeiten.',
-      preview_day: 'Vorschau: Tag', preview_night: 'Vorschau: Nacht',
+      design_day: 'Farbschema Tageslicht', night_label: 'Farbschema Dunkelheit',
+      sched_label: 'Wechsel Tageslicht/Dunkelheit', sched_off: 'Aus', sched_times: 'Feste Uhrzeiten', sched_sun: 'Sonnenstand',
+      day_from: 'Tageslicht ab', night_from: 'Dunkelheit ab',
+      sun_day: 'Tageslicht: Sonnenaufgang', sun_night: 'Dunkelheit: Sonnenuntergang',
+      sun_hint: 'Verschiebung in Stunden und Minuten, z. B. + 0 h 30 min = eine halbe Stunde nach Sonnenuntergang. Der Standort kommt vom Handy (auf ca. 1 km gerundet) und bleibt dort. Die Uhr bekommt nur die Zeiten der nächsten 60 Tage, bei jedem Öffnen der App neu.',
+      sun_today: 'Heute: Tageslicht ab {d}, Dunkelheit ab {n}', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
+      err_same_times: 'Tageslicht und Dunkelheit brauchen verschiedene Uhrzeiten.',
+      preview_day: 'Vorschau: Tageslicht', preview_night: 'Vorschau: Dunkelheit',
       c_bg: 'Hintergrund', c_fg: 'Schrift', c_hlbg: 'Auswahl-Hintergrund', c_hlfg: 'Auswahl-Schrift',
       preview_normal: 'Wecker 07:00', preview_sel: 'Ausgewählt 06:30',
       save: 'Speichern', saving: 'Speichere …', saved: 'Gespeichert.', fix_errors: 'Bitte rote Felder korrigieren.',
@@ -295,14 +295,14 @@
       name: 'Name',
       alarms_help: 'Set time, days, sound and vibration on the watch in the alarm menu.',
       design_title: 'Design', light: 'Light', dark: 'Dark',
-      design_day: 'Day color scheme', night_label: 'Night color scheme',
-      sched_label: 'Day/night switch', sched_off: 'Off', sched_times: 'Fixed times', sched_sun: 'Sun position',
-      day_from: 'Day from', night_from: 'Night from',
-      sun_day: 'Day: sunrise', sun_night: 'Night: sunset',
-      sun_hint: 'Offset in hours:minutes, e.g. + 00:30 = half an hour after sunset. The position comes from the phone (rounded to about 1 km) and stays there. The watch only gets the times of the next 60 days, refreshed every time the app opens.',
-      sun_today: 'Today: day from {d}, night from {n}', err_location: 'Position not available. Please allow location access in the Pebble app.',
-      err_same_times: 'Day and night need different times.',
-      preview_day: 'Preview: day', preview_night: 'Preview: night',
+      design_day: 'Daylight color scheme', night_label: 'Darkness color scheme',
+      sched_label: 'Daylight/darkness switch', sched_off: 'Off', sched_times: 'Fixed times', sched_sun: 'Sun position',
+      day_from: 'Daylight from', night_from: 'Darkness from',
+      sun_day: 'Daylight: sunrise', sun_night: 'Darkness: sunset',
+      sun_hint: 'Offset in hours and minutes, e.g. + 0 h 30 min = half an hour after sunset. The position comes from the phone (rounded to about 1 km) and stays there. The watch only gets the times of the next 60 days, refreshed every time the app opens.',
+      sun_today: 'Today: daylight from {d}, darkness from {n}', err_location: 'Position not available. Please allow location access in the Pebble app.',
+      err_same_times: 'Daylight and darkness need different times.',
+      preview_day: 'Preview: daylight', preview_night: 'Preview: darkness',
       c_bg: 'Background', c_fg: 'Text', c_hlbg: 'Selection background', c_hlfg: 'Selection text',
       preview_normal: 'Alarm 07:00', preview_sel: 'Selected 06:30',
       save: 'Save', saving: 'Saving …', saved: 'Saved.', fix_errors: 'Please fix the red fields.',
@@ -515,10 +515,22 @@
     var sel = $(id);
     return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
   }
-  function offsetOf(prefix) { return (+$(prefix + '-sign').value) * fromTime($(prefix + '-off').value); }
+  // Offset = a duration (sign, 0-12 hours, minutes in steps of 5), not a time of day
+  ['day', 'night'].forEach(function (prefix) {
+    var h = '', m = '';
+    for (var i = 0; i <= 12; i++) h += '<option value="' + i + '">' + i + '</option>';
+    for (var j = 0; j < 60; j += 5) m += '<option value="' + j + '">' + pad(j) + '</option>';
+    $(prefix + '-h').innerHTML = h;
+    $(prefix + '-m').innerHTML = m;
+  });
+  function offsetOf(prefix) {
+    return (+$(prefix + '-sign').value) * ((+$(prefix + '-h').value) * 60 + (+$(prefix + '-m').value));
+  }
   function setOffset(prefix, minutes) {
+    var abs = Math.min(Math.round(Math.abs(minutes) / 5) * 5, 12 * 60);
     $(prefix + '-sign').value = minutes < 0 ? '-1' : '1';
-    $(prefix + '-off').value = toTime(Math.abs(minutes));
+    $(prefix + '-h').value = String(Math.floor(abs / 60));
+    $(prefix + '-m').value = String(abs % 60);
   }
 
   var sunToday = null;   // today's sunrise/sunset from the phone {rise, set}
@@ -780,7 +792,7 @@
   $('theme-night').addEventListener('change', function () { previewNight = true; renderSchedule(); renderColors(); });
   $('sched').addEventListener('change', function () { renderSchedule(); renderColors(); });
   ['day-time', 'night-time'].forEach(function (id) { $(id).addEventListener('change', validate); });
-  ['day-sign', 'day-off', 'night-sign', 'night-off'].forEach(function (id) {
+  ['day-sign', 'day-h', 'day-m', 'night-sign', 'night-h', 'night-m'].forEach(function (id) {
     $(id).addEventListener('change', renderSunToday);
   });
 
