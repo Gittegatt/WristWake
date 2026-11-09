@@ -24,22 +24,22 @@ With this alarm app, I wanted to:
 - make sure I really get up
 
 Features:
-- up to 8 alarms with name, weekdays, snooze delay and protection against accidental deletion
-- 18 ringtones, including 5 rising ones, each with 4 volume levels
-- vibration patterns, with or without a ringtone
-- one of 30 symbols per alarm, shown in the list, when ringing and in Home Assistant
-- stop only by holding the bottom button, so you can't switch it off half asleep
-- hold the Select button in the list to turn an alarm on or off
-- stop a ringing alarm from the settings page on your phone
-- touch input: swipe and tap in lists, menus and the time input (swipe direction can be reversed)
-- wake-up challenge:
-    - easy: repeat a random button sequence (Follow, 4–10 steps)
-    - difficult: guess and remember it (Remember, 3–5 steps) before the alarm stops
-- 10 color presets or 2 custom schemes with your own colors
-- optionally a second scheme for darkness
-    - fixed times or by sunrise and sunset
+- up to 8 alarms with name, weekdays and snooze
+- protection against accidental deletion
+- 18 ringtones (5 rising), 4 volume levels
+- vibration patterns, with or without sound
+- 30 symbols, also shown in Home Assistant
+- stop only by holding the bottom button
+- hold Select to turn an alarm on or off
+- stop a ringing alarm from your phone
+- touch: swipe and tap
+- wake-up challenges:
+    - Follow: repeat 4–10 buttons
+    - Remember: guess and recall 3–5 buttons
+- 10 color presets, 2 custom schemes
+- darkness scheme by time or sunset
 - right- and left-handed mode
-- languages: English, German (request a new one if you like the app)
+- English and German
 
 Coming next:
 - Android companion alarm app that enables two-way sync between Home Assistant, your Pebble and your Android phone.
