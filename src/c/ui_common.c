@@ -139,6 +139,8 @@ const char *ui_snooze_name(uint8_t minutes) {
 // Drawing
 // ---------------------------------------------------------------------------
 
+#define DAY_LETTER_GAP 0   // pixels between the weekday letters (plus the font spacing)
+
 void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlighted, bool dimmed) {
   const Theme *t = theme();
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
@@ -150,8 +152,20 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
     return;
   }
+  // Letters with the same gap between them (M and W are wider than T, F, S), right-aligned
+  // like "Once"
   const char *letters = TR("MTWTFSS", "MDMDFSS");
   char letter[2] = {0, 0};
+  GRect box = GRect(0, 0, 30, rect.size.h);
+  int widths[7];
+  int total = 0;
+  for (int i = 0; i < 7; i++) {
+    letter[0] = letters[i];
+    widths[i] = graphics_text_layout_get_content_size(letter, font, box, GTextOverflowModeFill,
+                                                      GTextAlignmentLeft).w;
+    total += widths[i] + (i ? DAY_LETTER_GAP : 0);
+  }
+  int x = rect.origin.x + rect.size.w - 2 - total;
   for (int i = 0; i < 7; i++) {
     bool active = days & (1 << i);
     GColor color;
@@ -162,10 +176,9 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
     }
     graphics_context_set_text_color(ctx, color);
     letter[0] = letters[i];
-    // Wide letters (M, W) need more room than one step: widen the box around the center
-    int center = rect.origin.x + ((2 * i + 1) * rect.size.w) / 14;   // even spacing, also for odd widths
-    graphics_draw_text(ctx, letter, font, GRect(center - 9, rect.origin.y, 18, rect.size.h),
-                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, letter, font, GRect(x, rect.origin.y, widths[i] + 2, rect.size.h),
+                       GTextOverflowModeFill, GTextAlignmentLeft, NULL);
+    x += widths[i] + DAY_LETTER_GAP;
   }
 }
 
