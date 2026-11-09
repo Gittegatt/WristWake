@@ -272,15 +272,17 @@ static void prv_draw(Layer *layer, GContext *ctx) {
   if (s_state == RING_CHALLENGE) {
     graphics_context_set_text_color(ctx, t->fg);
     bool remember = (s_challenge_mode == CHALLENGE_REMEMBER);
-    graphics_draw_text(ctx, remember ? TR("Guess the buttons:", "Tasten erraten:") : TR("Press:", "Drücke:"),
+    // Remember: two lines (the boxes start below y = 92)
+    graphics_draw_text(ctx, remember ? TR("Guess and remember\nthe buttons", "Tasten erraten\nund merken")
+                                     : TR("Press", "Drücke"),
                        fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                       GRect(8, 14, b.size.w - 16, 30), GTextOverflowModeFill,
-                       GTextAlignmentCenter, NULL);
+                       remember ? GRect(8, 10, b.size.w - 16, 60) : GRect(8, 14, b.size.w - 16, 30),
+                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     if (remember) {
       // Remember: one box per step; "?" until guessed, the current box is filled
       int slot_w = (b.size.w - 16) / s_challenge_len;
       for (int i = 0; i < s_challenge_len; i++) {
-        GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 104);
+        GPoint c = GPoint(8 + slot_w * i + slot_w / 2, 116);
         if (i == s_challenge_pos) {
           graphics_context_set_fill_color(ctx, t->hl_bg);   // current box in the selection color
           graphics_fill_rect(ctx, GRect(c.x - 20, c.y - 24, 40, 48), 8, GCornersAll);
