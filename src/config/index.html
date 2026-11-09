@@ -292,7 +292,7 @@
       day_from: 'Tageslicht ab', night_from: 'Dunkelheit ab',
       sun_day: 'Tageslicht: Sonnenaufgang', sun_night: 'Dunkelheit: Sonnenuntergang',
       sun_hint: 'Verschiebung in Stunden und Minuten, z. B. + 0 h 30 min = eine halbe Stunde nach Sonnenuntergang. Der Standort kommt vom Handy (auf ca. 1 km gerundet) und bleibt dort. Die Uhr bekommt nur die Zeiten der nächsten 60 Tage, bei jedem Öffnen der App neu.',
-      sun_today: 'Heute: Tageslicht ab {d}, Dunkelheit ab {n}', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
+      sun_today: 'Heute: Tageslicht ab {d}, Dunkelheit ab {n}', sun_place: 'Standort: {p} (ca. 1 km genau)', err_location: 'Standort nicht verfügbar. Bitte in der Pebble-App den Standortzugriff erlauben.',
       err_same_times: 'Tageslicht und Dunkelheit brauchen verschiedene Uhrzeiten.',
       preview_day: 'Vorschau: Tageslicht', preview_night: 'Vorschau: Dunkelheit',
       c_bg: 'Hintergrund', c_fg: 'Schrift', c_hlbg: 'Auswahl-Hintergrund', c_hlfg: 'Auswahl-Schrift',
@@ -331,7 +331,7 @@
       day_from: 'Daylight from', night_from: 'Darkness from',
       sun_day: 'Daylight: sunrise', sun_night: 'Darkness: sunset',
       sun_hint: 'Offset in hours and minutes, e.g. + 0 h 30 min = half an hour after sunset. The position comes from the phone (rounded to about 1 km) and stays there. The watch only gets the times of the next 60 days, refreshed every time the app opens.',
-      sun_today: 'Today: daylight from {d}, darkness from {n}', err_location: 'Position not available. Please allow location access in the Pebble app.',
+      sun_today: 'Today: daylight from {d}, darkness from {n}', sun_place: 'Location: {p} (about 1 km)', err_location: 'Position not available. Please allow location access in the Pebble app.',
       err_same_times: 'Daylight and darkness need different times.',
       preview_day: 'Preview: daylight', preview_night: 'Preview: darkness',
       c_bg: 'Background', c_fg: 'Text', c_hlbg: 'Selection background', c_hlfg: 'Selection text',
@@ -565,11 +565,20 @@
   }
 
   var sunToday = null;   // today's sunrise/sunset from the phone {rise, set}
+  // Rounded position of the phone, e.g. "52.52° N, 13.40° E" (German: comma, O for east)
+  function placeText(p) {
+    function num(v) { var s = Math.abs(v).toFixed(2); return lang === 'de' ? s.replace('.', ',') : s; }
+    var ns = p.lat >= 0 ? 'N' : 'S';
+    var ew = p.lon >= 0 ? (lang === 'de' ? 'O' : 'E') : 'W';
+    return num(p.lat) + '° ' + ns + ', ' + num(p.lon) + '° ' + ew;
+  }
+
   // Today's resulting times, shown in the rows themselves
   function renderSunToday() {
     if (schedMode() !== 2 || !sunToday) return;
     $('day-sun').textContent = toTime(sunToday.rise + offsetOf('day'));
     $('night-sun').textContent = toTime(sunToday.set + offsetOf('night'));
+    if (sunToday.lat !== undefined) setStatus($('sun-today'), t('sun_place').replace('{p}', placeText(sunToday)));
   }
   function loadSunToday() {
     if (sunToday || !hasBridge()) return renderSunToday();

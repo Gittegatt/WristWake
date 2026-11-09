@@ -523,7 +523,7 @@ function sunToday(callback) {
     if (err) return callback(err);
     var now = new Date();
     var t = sunMinutes(now.getFullYear(), now.getMonth(), now.getDate(), loc);
-    callback(null, { rise: t[0], set: t[1] });
+    callback(null, { rise: t[0], set: t[1], lat: loc.lat, lon: loc.lon });
   });
 }
 
