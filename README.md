@@ -1,3 +1,5 @@
+![WristWake](store/banner_720x320.png)
+
 # WristWake
 
 Alarm clock watchapp for the Pebble Time 2 (SDK platform `emery`) with up to 8 alarms and Home Assistant integration.
@@ -97,3 +99,7 @@ tools/              helper scripts (emulator, settings page, preview images)
 package.json        project data (UUID, platforms, message keys)
 wscript             build rules
 ```
+
+## License
+
+WristWake is free software under the [GNU General Public License v3.0](LICENSE).
