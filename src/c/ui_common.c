@@ -151,7 +151,6 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
     return;
   }
   const char *letters = TR("MTWTFSS", "MDMDFSS");
-  int step = rect.size.w / 7;
   char letter[2] = {0, 0};
   for (int i = 0; i < 7; i++) {
     bool active = days & (1 << i);
@@ -164,7 +163,7 @@ void ui_draw_day_letters(GContext *ctx, GRect rect, uint8_t days, bool highlight
     graphics_context_set_text_color(ctx, color);
     letter[0] = letters[i];
     // Wide letters (M, W) need more room than one step: widen the box around the center
-    int center = rect.origin.x + i * step + step / 2;
+    int center = rect.origin.x + ((2 * i + 1) * rect.size.w) / 14;   // even spacing, also for odd widths
     graphics_draw_text(ctx, letter, font, GRect(center - 9, rect.origin.y, 18, rect.size.h),
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
   }
